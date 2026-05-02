@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import TopRightNav from '../components/TopRightNav';
 
 export default function RoomManagementPage() {
   const navigate = useNavigate();
@@ -57,19 +58,7 @@ export default function RoomManagementPage() {
           <span className="material-symbols-outlined text-on-surface-variant text-sm mr-2">search</span>
           <input className="bg-transparent border-none focus:ring-0 text-sm w-full text-on-surface-variant placeholder-on-surface-variant/50 outline-none" placeholder="Search for bookings or rooms..." type="text"/>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="relative text-slate-500 hover:text-slate-900 transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
-          </button>
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/settings')}>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900">John Doe</p>
-              <p className="text-[10px] text-slate-500">Administrator</p>
-            </div>
-            <img alt="User Avatar" className="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5L8zLleCxNfsOx-dlZvK2ox1EtpiLqpb2tf0I50XE8z_gN2XdyHTYdOxifeUqITiKmv76k-obAXoJqVgdTgEJYf8gjkktcOe8HsKuO48NIkf1uV5a9qlP_xeBLPUII8nVxb-tliaEtwlp9xvHFEO4wfuPvhGihh-TUm12lA-lGraNnU0R-J2vptqOP7k_3nH-P6FYJufIM6wgRp0_nzQM0TKKMMP5gODd0ae7G47VknXqET6laj-Q4vCByekFZ1K9jYDNlLIa_Ew"/>
-          </div>
-        </div>
+        <TopRightNav />
       </header>
 
       {/* Main Content Canvas */}

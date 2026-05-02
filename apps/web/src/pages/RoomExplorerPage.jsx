@@ -1,9 +1,161 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchApi } from '../lib/api';
+import { formatRupiah } from '../lib/formatRupiah';
+import TopRightNav from '../components/TopRightNav';
 
 export default function RoomExplorerPage() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [amenities, setAmenities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, roomId: null, roomName: '' });
+
+  // Add Room Form State
+  const [newRoomData, setNewRoomData] = useState({
+    name: '',
+    floor_level: 'Ground Floor',
+    capacity: 10,
+    hourlyRate: 100000,
+    facilities: [], // Will store amenity IDs
+    location: '',
+    rules: ['Please clean up after use', 'Minimum booking duration: 30 minutes', 'Do not unplug fixed equipment'],
+    imageFiles: [],
+    imagePreviews: [],
+  });
+
+  // Toast Notification State
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+
+  const showToast = (message, type = 'info') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
+
+  const confirmDeleteRoom = (id, name) => {
+    setDeleteConfirmation({ isOpen: true, roomId: id, roomName: name });
+  };
+
+  const executeDeleteRoom = async () => {
+    const { roomId } = deleteConfirmation;
+    if (!roomId) return;
+    
+    try {
+      const res = await fetchApi(`/rooms/${roomId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setRooms((prev) => prev.filter((r) => r.id !== roomId));
+        showToast('Room successfully deleted.', 'success');
+      } else {
+        showToast('Failed to delete room. You might not have permission.', 'error');
+      }
+    } catch (error) {
+      console.error('Failed to delete room:', error);
+      showToast('An error occurred while deleting the room.', 'error');
+    } finally {
+      setDeleteConfirmation({ isOpen: false, roomId: null, roomName: '' });
+    }
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [roomsRes, amenitiesRes] = await Promise.all([
+        fetchApi('/rooms'),
+        fetchApi('/rooms/amenities')
+      ]);
+      
+      if (roomsRes.ok) {
+        const result = await roomsRes.json();
+        setRooms(result.data || []);
+      }
+      
+      if (amenitiesRes.ok) {
+        const result = await amenitiesRes.json();
+        setAmenities(result || []);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleCreateRoom = async (e) => {
+    e.preventDefault();
+    if (!newRoomData.name) {
+      showToast("Room name is required.", "error");
+      return;
+    }
+
+    try {
+      const roomPayload = {
+        name: newRoomData.name,
+        slug: newRoomData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        floor: newRoomData.floor_level,
+        location: newRoomData.location || newRoomData.floor_level,
+        capacity: parseInt(newRoomData.capacity, 10),
+        hourlyRate: newRoomData.hourlyRate.toString(),
+        status: 'active',
+        rules: newRoomData.rules,
+        amenityIds: newRoomData.facilities,
+      };
+
+      const res = await fetchApi('/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roomPayload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to create room data');
+      }
+
+      const createdData = await res.json();
+      const roomId = createdData.id; // Fix: API returns room directly, not wrapped in {data: ...}
+
+      // Handle Image Upload if any
+      if (newRoomData.imageFiles && newRoomData.imageFiles.length > 0) {
+        await Promise.all(newRoomData.imageFiles.map(async (file, index) => {
+          const formData = new FormData();
+          formData.append('image', file);
+          formData.append('order', index);
+
+          const uploadRes = await fetchApi(`/rooms/${roomId}/images`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            console.error('Failed to upload image:', file.name);
+            showToast(`Failed to upload image: ${file.name}`, 'error');
+          }
+        }));
+      }
+
+      // Reset form and close modal
+      setIsAddRoomModalOpen(false);
+      setNewRoomData({ name: '', floor_level: 'Ground Floor', capacity: 10, facilities: ['Gigabit Fiber'], imageFiles: [], imagePreviews: [] });
+      
+      showToast('Room successfully created!', 'success');
+      
+      // Refresh rooms list
+      await loadRooms();
+
+    } catch (error) {
+      console.error('Create room error:', error);
+      showToast(error.message || 'An error occurred while creating the room.', 'error');
+    }
+  };
 
   return (
     <div className="bg-surface font-body text-on-surface min-h-screen">
@@ -31,21 +183,25 @@ export default function RoomExplorerPage() {
             <span className="material-symbols-outlined">bookmark_check</span>
             <span>My Bookings</span>
           </button>
-          <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">admin_panel_settings</span>
-            <span>Admin Management</span>
-          </button>
-          <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">bar_chart</span>
-            <span>Reports</span>
-          </button>
+          {user?.role === 'admin' && (
+            <>
+              <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
+                <span className="material-symbols-outlined">admin_panel_settings</span>
+                <span>Admin Management</span>
+              </button>
+              <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
+                <span className="material-symbols-outlined">bar_chart</span>
+                <span>Reports</span>
+              </button>
+            </>
+          )}
         </nav>
         <div className="mt-auto space-y-2 border-t border-slate-100 pt-6">
           <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
             <span className="material-symbols-outlined">settings</span>
             <span>Settings</span>
           </button>
-          <button onClick={() => navigate('/login')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+          <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error/10 text-left">
             <span className="material-symbols-outlined">logout</span>
             <span>Logout</span>
           </button>
@@ -62,20 +218,8 @@ export default function RoomExplorerPage() {
               <input className="w-full bg-surface-container border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-0 focus:bg-surface-container-lowest focus:shadow-lg transition-all font-body outline-none" placeholder="Search rooms, floors, or equipment..." type="text" />
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <button className="relative text-slate-500 hover:text-slate-900 transition-colors">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
-            </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-900">John Doe</p>
-                <p className="text-[10px] text-slate-500">Premium Member</p>
-              </div>
-              <img alt="User Avatar" className="w-8 h-8 rounded-full object-cover ring-2 ring-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAae_PPe5uO0wO5MkUprYmf4oMYorDMUNru8K0dWLSBEP0jDf4R2Nz2_RWfPI4VrbVRJgkwHbq8y93lXxM80TbnxfA3i9Z1uM3Q9vFUjmBpMkkyf5MwTOljsM0cif58WPtp-IJkX6xoUh9yqas4AQ5IckSAVvoiWKMGWo4XaG0rl_0Dm4uPYPAtCsg-LEcyh94zhHDNoBkld5m9oFjr_ym02-Lk8DVuanyewQdwQ_O6IwFr0HEcvWPsPwj9-A6BPKEAofU37TKMWCs" />
-            </div>
-          </div>
-        </header>
+          <TopRightNav />
+      </header>
 
         {/* Page Content */}
         <div className="pt-24 px-8 pb-12">
@@ -85,9 +229,12 @@ export default function RoomExplorerPage() {
               <h2 className="text-5xl font-headline font-extrabold tracking-tight text-primary mb-2">Room Inventory / Explorer</h2>
               <p className="text-on-surface-variant font-body">Manage your workspace ecosystem with precision.</p>
             </div>
-            <button onClick={() => setIsAddRoomModalOpen(true)} className="bg-gradient-to-br from-primary to-primary-container text-white px-8 py-4 rounded-xl font-bold shadow-[0_20px_40px_rgba(0,9,27,0.15)] hover:scale-105 transition-all">
-              Add New Room
-            </button>
+            {user?.role === 'admin' && (
+              <button onClick={() => setIsAddRoomModalOpen(true)} className="bg-gradient-to-br from-primary to-primary-container text-white px-8 py-4 rounded-xl font-bold shadow-[0_20px_40px_rgba(0,9,27,0.15)] hover:scale-105 transition-all flex items-center gap-2">
+                <span className="material-symbols-outlined">add</span>
+                Add New Room
+              </button>
+            )}
           </div>
 
           {/* Filter & Search Bar Section */}
@@ -97,9 +244,9 @@ export default function RoomExplorerPage() {
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Location / Floor</label>
                 <select className="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-sm focus:ring-0 shadow-sm font-body outline-none">
                   <option>All Floors</option>
-                  <option>Floor 1 - Reception & Lobby</option>
-                  <option>Floor 2 - Engineering Hub</option>
-                  <option>Floor 5 - Executive Suite</option>
+                  <option>Floor 1</option>
+                  <option>Floor 2</option>
+                  <option>Floor 3</option>
                 </select>
               </div>
               <div className="w-48">
@@ -129,233 +276,92 @@ export default function RoomExplorerPage() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-end self-stretch pb-0.5">
-                <div className="flex bg-surface-container-highest p-1 rounded-lg">
-                  <button className="p-2 rounded-md bg-white shadow-sm text-primary">
-                    <span className="material-symbols-outlined">grid_view</span>
-                  </button>
-                  <button className="p-2 rounded-md text-on-surface-variant hover:text-primary transition-colors">
-                    <span className="material-symbols-outlined">view_list</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </section>
 
           {/* Room Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Room Card 1: Available */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500">
-              <div className="relative h-64 overflow-hidden cursor-pointer" onClick={() => navigate('/rooms/boardroom-alpha')}>
-                <img alt="Boardroom A" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDX5oA3N3uM1AhW5FRcBGWpOSQzEPr75hNwWNWqCMupRR4JDbxANZ-gZxg_ULwaFsahwed6_7h5TuYj6xe1rJ4sb6NqjCKlCq4Yv-JhCvK7yTNTtXrP-_-WI1IMmzHEp6NgfofJISTGkNFGwV1ksv6CCOAZQSLRqeZmPTQa-oRVUghtVQt8UGAwTodSd4j1x73BxIUZdzEohFwn-JN5EiyO_nJcqfWdUaubiaDE0CiY1Oa8FCQ7TKk_-3HpAXDalDrev2wObr39QaA" />
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tertiary-container text-tertiary-fixed">
-                    Available
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 onClick={() => navigate('/rooms/boardroom-alpha')} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline">Boardroom Alpha</h3>
-                    <p className="text-sm text-on-surface-variant flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">layers</span> Floor 5 • 24 seats
-                    </p>
+          {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+               {[1,2,3,4,5,6].map(i => (
+                 <div key={i} className="bg-surface-container-highest rounded-xl h-96 animate-pulse"></div>
+               ))}
+             </div>
+          ) : rooms.length === 0 ? (
+             <div className="bg-surface-container-lowest p-12 text-center rounded-xl border border-dashed border-slate-200">
+               <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">domain_disabled</span>
+               <h3 className="text-xl font-bold text-slate-700">No Rooms Found</h3>
+               <p className="text-slate-500 mt-2">There are currently no rooms available in the system.</p>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {rooms.map((room) => (
+                <div key={room.id} className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500 flex flex-col">
+                  <div className="relative h-64 overflow-hidden cursor-pointer bg-slate-100" onClick={() => navigate(`/rooms/${room.id}`)}>
+                    {room.images && room.images.length > 0 ? (
+                       <img alt={room.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={`http://localhost:3001/${room.images[0].filePath.replace(/\\/g, '/')}`} />
+                    ) : (
+                       <div className="w-full h-full flex items-center justify-center text-slate-300">
+                         <span className="material-symbols-outlined text-6xl">meeting_room</span>
+                       </div>
+                    )}
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      {user?.role === 'admin' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); confirmDeleteRoom(room.id, room.name); }}
+                          className="bg-white/90 hover:bg-error hover:text-white text-error p-1.5 rounded-full shadow-lg transition-colors flex items-center justify-center w-8 h-8 backdrop-blur-sm"
+                          title="Delete Room"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      )}
+                      {room.status === 'active' ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tertiary-container text-tertiary-fixed shadow-lg">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-error-container text-on-error-container shadow-lg">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 onClick={() => navigate(`/rooms/${room.id}`)} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline line-clamp-1" title={room.name}>{room.name}</h3>
+                        <p className="text-sm text-on-surface-variant flex flex-wrap items-center gap-3 mt-2">
+                          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">layers</span> {room.floor || 'General'}</span>
+                          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">groups</span> {room.capacity} seats</span>
+                          {room.hourlyRate && <span className="flex items-center gap-1 font-bold text-primary"><span className="material-symbols-outlined text-[16px]">payments</span> {formatRupiah(room.hourlyRate)}/hr</span>}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-slate-500 line-clamp-2 mb-4 h-8">{room.description}</p>
+                    
+                    <div className="flex gap-4 mb-8 text-on-secondary-container mt-auto">
+                      {room.roomAmenities && room.roomAmenities.slice(0, 4).map((link, idx) => (
+                        <span key={idx} className="material-symbols-outlined" title={link.amenity.name}>
+                          {link.amenity.icon || 'star'}
+                        </span>
+                      ))}
+                      {room.roomAmenities && room.roomAmenities.length > 4 && (
+                        <span className="text-xs font-bold text-slate-400 self-center">+{room.roomAmenities.length - 4}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => navigate(`/bookings/new?roomId=${room.id}`)} className="flex-1 primary-gradient text-white py-3 px-4 rounded-lg font-bold text-sm tracking-wide active:scale-95 transition-transform" disabled={room.status !== 'active'}>
+                        {room.status === 'active' ? 'Available' : 'Unavailable'}
+                      </button>
+                      <button onClick={() => navigate(`/calendar?roomId=${room.id}`)} className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
+                        <span className="material-symbols-outlined">calendar_today</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-4 mb-8 text-on-secondary-container">
-                  <span className="material-symbols-outlined" title="Large TV Screen">tv</span>
-                  <span className="material-symbols-outlined" title="HDMI Support">settings_input_hdmi</span>
-                  <span className="material-symbols-outlined" title="Air Conditioning">ac_unit</span>
-                  <span className="material-symbols-outlined" title="Coffee Service">local_cafe</span>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => navigate('/bookings/new')} className="flex-1 primary-gradient text-white py-3 px-4 rounded-lg font-bold text-sm tracking-wide active:scale-95 transition-transform">
-                    Book Now
-                  </button>
-                  <button className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
-                    <span className="material-symbols-outlined">calendar_today</span>
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Room Card 2: Occupied */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500">
-              <div className="relative h-64 overflow-hidden cursor-pointer" onClick={() => navigate('/rooms/focus-studio-2')}>
-                <img alt="Focus Room 2" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqr287MLsi2oBIz-Q9lDB_ahHk3Hm9eEVnKYz-K1GCGiHSXFjZqutg8TIhrruWiYfmNPSbKboVRxf8AKvu0jVbXrHvI1QokLEniBN4VZMzlhpDzJzWj9rE1d-UnZq4Kd088g5qHSmJNuUr_CbDLexLf5HoTEYLv8mGOFl_6o66gqVHpxdPRYeJUW45nRqwYN-TbYSwBEpXRYKD8pTq7RrXYw1514OYe6fh-7EV5VkGaSl6t83br1HQW3GwDbJ1-kN6xB3LFhDWlaE" />
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-error-container text-on-error-container">
-                    Occupied
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 onClick={() => navigate('/rooms/focus-studio-2')} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline">Focus Studio 2</h3>
-                    <p className="text-sm text-on-surface-variant flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">layers</span> Floor 2 • 2 seats
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 mb-8 text-on-secondary-container">
-                  <span className="material-symbols-outlined" title="High Speed WiFi">wifi</span>
-                  <span className="material-symbols-outlined" title="Fast Charging">charging_station</span>
-                  <span className="material-symbols-outlined" title="Soundproof">volume_off</span>
-                </div>
-                <div className="flex gap-3">
-                  <button className="flex-1 bg-surface-container-high text-on-surface-variant py-3 px-4 rounded-lg font-bold text-sm tracking-wide cursor-not-allowed">
-                    View Schedule
-                  </button>
-                  <button className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
-                    <span className="material-symbols-outlined">more_horiz</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Room Card 3: Available */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500">
-              <div className="relative h-64 overflow-hidden cursor-pointer" onClick={() => navigate('/rooms/creative-hub')}>
-                <img alt="Creative Hub" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2Ok4FpJom-E3NEDa27-WSkO1nxdG2CLAhiuhxr7qjCDo8joHsuUSakRQw4lmqA9EbmtmOevWY-U5_vL5GIar6_Uz7CExav7XoiQlSoB8LSX9b6TkT1LXeAnCRmAeowhH0MWm0n6qs5OZuRMgc-ku2nDDYzFCb9gj08zNiCabWcnaSLFweKb2qB0HmSGq9vZvc67QrO0DTUv621Sd0KhwHh-QkuNXgl9G7OglwbzeoCimuYcGxCuRq0FVac78S9WTX-yVk1LoOnGQ" />
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tertiary-container text-tertiary-fixed">
-                    Available
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 onClick={() => navigate('/rooms/creative-hub')} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline">Creative Hub</h3>
-                    <p className="text-sm text-on-surface-variant flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">layers</span> Floor 2 • 12 seats
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 mb-8 text-on-secondary-container">
-                  <span className="material-symbols-outlined" title="HD Camera System">videocam</span>
-                  <span className="material-symbols-outlined" title="Digital Whiteboard">draw</span>
-                  <span className="material-symbols-outlined" title="Air Conditioning">ac_unit</span>
-                  <span className="material-symbols-outlined" title="Collaborative Layout">group</span>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => navigate('/bookings/new')} className="flex-1 primary-gradient text-white py-3 px-4 rounded-lg font-bold text-sm tracking-wide active:scale-95 transition-transform">
-                    Book Now
-                  </button>
-                  <button className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
-                    <span className="material-symbols-outlined">calendar_today</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Room Card 4: Available */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500">
-              <div className="relative h-64 overflow-hidden cursor-pointer" onClick={() => navigate('/rooms/meeting-pod-04')}>
-                <img alt="Small Meeting 1" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe-wu0bjFMA05rbLnyEk5G9pF_VeMwa9m6if6ZIXNk5CGRk3hr69VOkZY9XBIIgkOnQHwoSTkPbyDW15XxcGY_dtdzGWjI85OBGMFIzdqAHcgwOk9A7VjJYWEQS0H9yCXCPA3E1q2nAzmVzo4dAvOnSkykEVyYvH6ScVmjHHvD7OQLTJsqitcipK3q1iPoAYomMYEFbHvOi2ekrjhHmMd1p43tUx0zhJzQgURd1A5Droy-ShExOQbLfJb9D-2T8BmpNfSaJHzZDno" />
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tertiary-container text-tertiary-fixed">
-                    Available
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 onClick={() => navigate('/rooms/meeting-pod-04')} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline">Meeting Pod 04</h3>
-                    <p className="text-sm text-on-surface-variant flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">layers</span> Floor 1 • 4 seats
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 mb-8 text-on-secondary-container">
-                  <span className="material-symbols-outlined" title="High Speed WiFi">wifi</span>
-                  <span className="material-symbols-outlined" title="HDMI Support">settings_input_hdmi</span>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => navigate('/bookings/new')} className="flex-1 primary-gradient text-white py-3 px-4 rounded-lg font-bold text-sm tracking-wide active:scale-95 transition-transform">
-                    Book Now
-                  </button>
-                  <button className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
-                    <span className="material-symbols-outlined">calendar_today</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Room Card 5: Occupied */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500">
-              <div className="relative h-64 overflow-hidden cursor-pointer" onClick={() => navigate('/rooms/academy-hall')}>
-                <img alt="Training Center" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6VrS_xEpAgo2NtmXMNA_Natrh456UwTYIxp_hBZzmzGM4GYUSh61F_mvRprI4rlg1gR21yaQ_UG2H5ojn6EKKWYyx0jiq9ZwcylmPyNP9pKh-bkqoUqKrQtYDJzqWhqGqpclokqBPvCjGhzfWetbjbCKCgzPljgPF2Sj5ZGnIteX4ttfWt0BUv0IBvJ_tfe3wM0eolXII2hhq4h6j-UYFzh8icMtmFaGNLJsDwEez_sEIOKW2kmDamy9RO0LhJQhEWL6tEHeX9uQ" />
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-error-container text-on-error-container">
-                    Occupied
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 onClick={() => navigate('/rooms/academy-hall')} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline">Academy Hall</h3>
-                    <p className="text-sm text-on-surface-variant flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">layers</span> Floor 3 • 50 seats
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 mb-8 text-on-secondary-container">
-                  <span className="material-symbols-outlined" title="Audio System">mic</span>
-                  <span className="material-symbols-outlined" title="Triple Display">tv</span>
-                  <span className="material-symbols-outlined" title="Air Conditioning">ac_unit</span>
-                </div>
-                <div className="flex gap-3">
-                  <button className="flex-1 bg-surface-container-high text-on-surface-variant py-3 px-4 rounded-lg font-bold text-sm tracking-wide cursor-not-allowed">
-                    View Schedule
-                  </button>
-                  <button className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
-                    <span className="material-symbols-outlined">more_horiz</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Room Card 6: Available */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500">
-              <div className="relative h-64 overflow-hidden cursor-pointer" onClick={() => navigate('/rooms/sky-lounge')}>
-                <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/0 transition-colors z-10"></div>
-                <img alt="Terrace Lounge" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqW7HiOVLGUTgue7VOEiTOmBL-xxohrx1iLC1qbPQySj49a0eiXDklkcUXgohZIdV7JzBjGo89NTOzlxu7ME3SvexPa_zdkrr0GNZ2VJ5kFi7CkqRfpI7ZLSt1Gf0gMVLkmUBecMRSPiFlSJ5JJGqNtiE5D_KOJ4Y1b7MXfdLecTLlCKYxmZjLJJGigECpnq4AsnblbzR3UY3zTRcLn5oY4o_fG61goOvCzHxAqtxSr3Hrtwz0ieWAjQqmLj84IyM80NDTIp8tPgs" />
-                <div className="absolute top-4 right-4 z-20">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tertiary-container text-tertiary-fixed">
-                    Available
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 onClick={() => navigate('/rooms/sky-lounge')} className="text-2xl font-headline font-bold text-primary tracking-tight cursor-pointer hover:underline">Sky Lounge</h3>
-                    <p className="text-sm text-on-surface-variant flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">layers</span> Roof • 15 seats
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4 mb-8 text-on-secondary-container">
-                  <span className="material-symbols-outlined" title="Outdoor Seating">deck</span>
-                  <span className="material-symbols-outlined" title="High Speed WiFi">wifi</span>
-                  <span className="material-symbols-outlined" title="Catering Ready">restaurant</span>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => navigate('/bookings/new')} className="flex-1 primary-gradient text-white py-3 px-4 rounded-lg font-bold text-sm tracking-wide active:scale-95 transition-transform">
-                    Book Now
-                  </button>
-                  <button className="px-4 py-3 rounded-lg text-on-surface font-semibold text-sm hover:bg-surface-container-high transition-colors">
-                    <span className="material-symbols-outlined">calendar_today</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </main>
 
@@ -372,7 +378,7 @@ export default function RoomExplorerPage() {
           <div className="absolute inset-0 bg-primary/20 backdrop-blur-md" onClick={() => setIsAddRoomModalOpen(false)}></div>
           
           {/* Modal Content Card */}
-          <div className="relative w-full max-w-3xl bg-surface/95 backdrop-blur-xl rounded-[2rem] shadow-[0_40px_80px_rgba(0,9,27,0.2)] overflow-hidden flex flex-col md:flex-row border border-white/20">
+          <div className="relative w-full max-w-3xl max-h-[90vh] bg-surface/95 backdrop-blur-xl rounded-[2rem] shadow-[0_40px_80px_rgba(0,9,27,0.2)] overflow-hidden flex flex-col md:flex-row border border-white/20">
             {/* Left Side: Visual/Context */}
             <div className="md:w-1/3 bg-primary-container p-10 flex flex-col justify-between relative overflow-hidden">
               <div className="relative z-10">
@@ -393,41 +399,93 @@ export default function RoomExplorerPage() {
             </div>
             
             {/* Right Side: Form */}
-            <div className="md:w-2/3 p-10 bg-surface-container-lowest">
+            <div className="md:w-2/3 p-10 bg-surface-container-lowest overflow-y-auto">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold font-headline text-primary">Room Details</h3>
                 <button onClick={() => setIsAddRoomModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
                   <span className="material-symbols-outlined text-slate-400">close</span>
                 </button>
               </div>
-              <form className="space-y-6 font-body" onSubmit={(e) => { e.preventDefault(); setIsAddRoomModalOpen(false); }}>
+              <form className="space-y-6 font-body" onSubmit={handleCreateRoom}>
                 {/* Basic Info Row */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Room Name</label>
-                    <input className="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-on-surface focus:bg-white focus:ring-1 focus:ring-primary/10 shadow-sm transition-all outline-none text-sm" placeholder="e.g. Skyline Lounge" type="text"/>
+                    <input 
+                      value={newRoomData.name} 
+                      onChange={(e) => setNewRoomData({...newRoomData, name: e.target.value})}
+                      className="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-on-surface focus:bg-white focus:ring-1 focus:ring-primary/10 shadow-sm transition-all outline-none text-sm" 
+                      placeholder="e.g. Skyline Lounge" 
+                      type="text"
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Floor Level</label>
-                    <select className="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-on-surface focus:bg-white shadow-sm transition-all outline-none appearance-none cursor-pointer text-sm">
+                    <select 
+                      value={newRoomData.floor_level}
+                      onChange={(e) => setNewRoomData({...newRoomData, floor_level: e.target.value})}
+                      className="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-on-surface focus:bg-white shadow-sm transition-all outline-none appearance-none cursor-pointer text-sm"
+                    >
                       <option>Ground Floor</option>
                       <option>Executive (04)</option>
                       <option>Penthouse (12)</option>
                     </select>
                   </div>
                 </div>
-                
-                {/* Capacity & Assets */}
+
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Seating Capacity</label>
-                  <div className="flex items-center gap-4 bg-surface-container rounded-xl p-1">
-                    <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:scale-95 transition-all text-slate-500" type="button">
-                      <span className="material-symbols-outlined text-sm">remove</span>
-                    </button>
-                    <input className="flex-1 bg-transparent border-none text-center font-bold text-primary focus:ring-0 outline-none text-lg" type="number" defaultValue="10"/>
-                    <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:scale-95 transition-all text-slate-500" type="button">
-                      <span className="material-symbols-outlined text-sm">add</span>
-                    </button>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Location Detail (Optional)</label>
+                  <input 
+                    value={newRoomData.location} 
+                    onChange={(e) => setNewRoomData({...newRoomData, location: e.target.value})}
+                    className="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-on-surface focus:bg-white focus:ring-1 focus:ring-primary/10 shadow-sm transition-all outline-none text-sm" 
+                    placeholder="e.g. West Wing, near elevator" 
+                    type="text"
+                  />
+                </div>
+                
+                {/* Capacity & Hourly Rate */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Seating Capacity</label>
+                    <div className="flex items-center gap-4 bg-surface-container rounded-xl p-1 h-12">
+                      <button 
+                        onClick={() => setNewRoomData({...newRoomData, capacity: Math.max(1, newRoomData.capacity - 1)})}
+                        className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:scale-95 transition-all text-slate-500" type="button"
+                      >
+                        <span className="material-symbols-outlined text-sm">remove</span>
+                      </button>
+                      <input 
+                        value={newRoomData.capacity}
+                        onChange={(e) => setNewRoomData({...newRoomData, capacity: parseInt(e.target.value) || 0})}
+                        className="flex-1 bg-transparent border-none text-center font-bold text-primary focus:ring-0 outline-none text-lg" 
+                        type="number" 
+                        min="1"
+                      />
+                      <button 
+                        onClick={() => setNewRoomData({...newRoomData, capacity: newRoomData.capacity + 1})}
+                        className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:scale-95 transition-all text-slate-500" type="button"
+                      >
+                        <span className="material-symbols-outlined text-sm">add</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Hourly Rate (Rp)</label>
+                    <div className="flex items-center bg-surface-container rounded-xl p-1 h-12">
+                      <span className="text-slate-400 ml-3 font-bold">Rp</span>
+                      <input 
+                        value={newRoomData.hourlyRate}
+                        onChange={(e) => setNewRoomData({...newRoomData, hourlyRate: parseFloat(e.target.value) || 0})}
+                        className="flex-1 bg-transparent border-none text-left font-bold text-primary focus:ring-0 outline-none text-lg w-full px-2" 
+                        type="number" 
+                        min="0"
+                        step="10000"
+                        placeholder="500000"
+                      />
+                    </div>
                   </div>
                 </div>
                 
@@ -435,43 +493,102 @@ export default function RoomExplorerPage() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Facilities & Equipment</label>
                   <div className="flex flex-wrap gap-2">
-                    <label className="group cursor-pointer">
-                      <input className="hidden peer" type="checkbox"/>
-                      <span className="px-4 py-2 rounded-full border border-outline-variant text-xs font-semibold text-slate-600 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">videocam</span> 4K Video Conf
-                      </span>
-                    </label>
-                    <label className="group cursor-pointer">
-                      <input defaultChecked className="hidden peer" type="checkbox"/>
-                      <span className="px-4 py-2 rounded-full border border-outline-variant text-xs font-semibold text-slate-600 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">wifi</span> Gigabit Fiber
-                      </span>
-                    </label>
-                    <label className="group cursor-pointer">
-                      <input className="hidden peer" type="checkbox"/>
-                      <span className="px-4 py-2 rounded-full border border-outline-variant text-xs font-semibold text-slate-600 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">coffee</span> Premium Bar
-                      </span>
-                    </label>
-                    <label className="group cursor-pointer">
-                      <input className="hidden peer" type="checkbox"/>
-                      <span className="px-4 py-2 rounded-full border border-outline-variant text-xs font-semibold text-slate-600 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">tv</span> 85" OLED Display
-                      </span>
-                    </label>
+                    {amenities.map(amenity => (
+                      <label key={amenity.id} className="group cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="hidden peer"
+                          checked={newRoomData.facilities.includes(amenity.id)}
+                          onChange={(e) => {
+                            const current = newRoomData.facilities;
+                            const isSelected = e.target.checked;
+                            setNewRoomData({
+                              ...newRoomData,
+                              facilities: isSelected ? [...current, amenity.id] : current.filter(id => id !== amenity.id)
+                            });
+                          }}
+                        />
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-transparent bg-surface-container text-slate-600 font-medium text-sm transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary/20 hover:scale-95">
+                          <span className="material-symbols-outlined text-[18px]">{amenity.icon || 'star'}</span>
+                          {amenity.name}
+                        </div>
+                      </label>
+                    ))}
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">House Rules (One per line)</label>
+                  <textarea 
+                    value={newRoomData.rules.join('\n')} 
+                    onChange={(e) => setNewRoomData({...newRoomData, rules: e.target.value.split('\n').filter(r => r.trim() !== '')})}
+                    className="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-on-surface focus:bg-white focus:ring-1 focus:ring-primary/10 shadow-sm transition-all outline-none text-sm min-h-[100px]" 
+                    placeholder="e.g. Please clean up after use" 
+                  />
                 </div>
                 
                 {/* Image Uploader */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Room Photography</label>
-                  <div className="border-2 border-dashed border-outline-variant/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-surface-container-low/30 hover:bg-surface-container transition-colors group cursor-pointer">
-                    <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <span className="material-symbols-outlined text-primary">upload_file</span>
-                    </div>
-                    <p className="text-sm font-semibold text-primary">Drop images here or <span className="text-secondary underline underline-offset-4">browse</span></p>
-                    <p className="text-[10px] text-slate-400 mt-2 font-medium">High-resolution JPEG or PNG, max 10MB</p>
-                  </div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Room Photography (Max 5)</label>
+                  <label className="border-2 border-dashed border-outline-variant/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-surface-container-low/30 hover:bg-surface-container transition-colors group cursor-pointer relative overflow-hidden min-h-[160px]">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple
+                      className="hidden" 
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files).slice(0, 5); // Limit to 5
+                        if (files.length > 0) {
+                          const previews = files.map(f => URL.createObjectURL(f));
+                          setNewRoomData({
+                            ...newRoomData,
+                            imageFiles: [...newRoomData.imageFiles, ...files].slice(0, 5),
+                            imagePreviews: [...newRoomData.imagePreviews, ...previews].slice(0, 5)
+                          });
+                        }
+                      }}
+                    />
+                    
+                    {newRoomData.imagePreviews && newRoomData.imagePreviews.length > 0 ? (
+                      <div className="absolute inset-0 p-4 grid grid-cols-3 gap-2 overflow-y-auto bg-surface-container-low z-20" onClick={(e) => e.preventDefault()}>
+                        {newRoomData.imagePreviews.map((preview, idx) => (
+                          <div key={idx} className="relative h-24 rounded-lg overflow-hidden shadow-sm group/item">
+                            <img src={preview} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const newFiles = [...newRoomData.imageFiles];
+                                const newPreviews = [...newRoomData.imagePreviews];
+                                newFiles.splice(idx, 1);
+                                newPreviews.splice(idx, 1);
+                                setNewRoomData({...newRoomData, imageFiles: newFiles, imagePreviews: newPreviews});
+                              }}
+                              className="absolute top-1 right-1 bg-white/80 backdrop-blur text-error rounded-full p-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                          </div>
+                        ))}
+                        {newRoomData.imagePreviews.length < 5 && (
+                          <label className="h-24 rounded-lg border-2 border-dashed border-primary/30 flex items-center justify-center text-primary/50 hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer">
+                            <span className="material-symbols-outlined">add</span>
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative z-10 flex flex-col items-center pointer-events-none">
+                        <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                          <span className="material-symbols-outlined text-primary">upload_file</span>
+                        </div>
+                        <p className="text-sm font-semibold text-primary">
+                          <span className="text-secondary underline underline-offset-4">Browse</span> or drop images here
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-2 font-medium">Select multiple images (JPEG/PNG)</p>
+                      </div>
+                    )}
+                  </label>
                 </div>
                 
                 {/* Form Actions */}
@@ -488,6 +605,49 @@ export default function RoomExplorerPage() {
           </div>
         </div>
       )}
+      {/* MODAL OVERLAY: Delete Confirmation */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setDeleteConfirmation({ isOpen: false, roomId: null, roomName: '' })}></div>
+          <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-[0_40px_80px_rgba(0,0,0,0.1)] p-8 text-center border border-slate-100 transform transition-all duration-300 scale-100 opacity-100">
+            <div className="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="material-symbols-outlined text-error text-4xl">warning</span>
+            </div>
+            <h3 className="text-2xl font-bold font-headline text-slate-900 mb-2">Delete Room?</h3>
+            <p className="text-slate-500 mb-8 font-body">
+              Are you sure you want to permanently delete <strong className="text-slate-700">"{deleteConfirmation.roomName}"</strong>? This action cannot be undone.
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setDeleteConfirmation({ isOpen: false, roomId: null, roomName: '' })} 
+                className="flex-1 px-6 py-4 rounded-xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeDeleteRoom} 
+                className="flex-1 bg-error hover:bg-error-container hover:text-on-error-container text-white px-6 py-4 rounded-xl font-bold shadow-lg shadow-error/30 hover:shadow-xl transition-all active:scale-95"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 transform ${toast.visible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95 pointer-events-none'}`}>
+        <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.15)] border ${
+          toast.type === 'success' ? 'bg-tertiary-container text-tertiary-fixed border-tertiary-fixed/20' : 
+          toast.type === 'error' ? 'bg-error-container text-on-error-container border-error/20' : 
+          'bg-white text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-white dark:border-slate-700'
+        }`}>
+          <span className="material-symbols-outlined text-[20px]">
+            {toast.type === 'success' ? 'check_circle' : toast.type === 'error' ? 'error' : 'info'}
+          </span>
+          <p className="font-bold text-sm tracking-wide">{toast.message}</p>
+        </div>
+      </div>
     </div>
   );
 }

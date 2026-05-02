@@ -1,11 +1,33 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', message: '' });
+  const [resetEmail, setResetEmail] = useState('');
+
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    setModalConfig({ 
+      isOpen: true, 
+      type: 'prompt', 
+      message: 'Enter your email address to receive a password reset link:' 
+    });
+  };
+
+  const handleSocialLogin = (provider) => {
+    setModalConfig({ 
+      isOpen: true, 
+      type: 'info', 
+      message: `Redirecting to ${provider} login...\n\n(Note: This is a demo. To make this work in production, configure ${provider} Client ID and Secret in the backend .env file).` 
+    });
+  };
 
   return (
-    <main className="flex h-screen w-full">
+    <main className="flex h-screen w-full relative">
       {/* Left Panel: Brand Experience */}
       <section className="hidden lg:flex w-1/2 relative flex-col justify-between p-16 bg-gradient-to-br from-primary-container to-[#1a365d] overflow-hidden">
         {/* Decorative Grain / Ambient Glow */}
@@ -43,7 +65,7 @@ export default function LoginPage() {
       </section>
 
       {/* Right Panel: Login Interface */}
-      <section className="w-full lg:w-1/2 flex items-center justify-center bg-surface-container-lowest p-8 lg:p-24">
+      <section className="w-full lg:w-1/2 flex items-center justify-center bg-surface-container-lowest p-8 lg:p-24 overflow-y-auto">
         <div className="w-full max-w-md flex flex-col items-center">
           
           {/* Brand Anchor (Mobile & Form Header) */}
@@ -57,25 +79,45 @@ export default function LoginPage() {
           </div>
 
           {/* Form Content */}
-          <form className="w-full space-y-6" onSubmit={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
+          <form className="w-full space-y-6" onSubmit={async (e) => { 
+            e.preventDefault(); 
+            const email = e.target.email.value;
+            const password = e.target.password.value;
+            
+            if (email && password) {
+              setLoading(true);
+              const result = await login(email, password);
+              setLoading(false);
+              
+              if (result.success) {
+                navigate('/dashboard'); 
+              } else {
+                setModalConfig({ isOpen: true, type: 'error', message: `Login failed: ${result.error}` });
+              }
+            }
+          }}>
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">EMAIL ADDRESS</label>
               <input 
+                name="email"
                 className="w-full h-14 px-5 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" 
                 placeholder="john.doe@company.com" 
                 type="email"
+                required
               />
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="block text-sm font-semibold text-on-surface-variant tracking-wide">PASSWORD</label>
-                <a className="text-sm font-semibold text-primary-container hover:underline" href="#">Forgot password?</a>
+                <a onClick={handleForgotPassword} className="text-sm font-semibold text-primary-container hover:underline cursor-pointer">Forgot password?</a>
               </div>
               <input 
+                name="password"
                 className="w-full h-14 px-5 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" 
                 placeholder="••••••••" 
                 type="password"
+                required
               />
             </div>
             
@@ -108,7 +150,7 @@ export default function LoginPage() {
 
           {/* SSO Options */}
           <div className="grid grid-cols-2 gap-4 w-full">
-            <button className="flex items-center justify-center gap-3 h-14 rounded-xl bg-surface-container-lowest border-2 border-surface-container-high hover:bg-surface-container-low transition-all duration-200 group">
+            <button type="button" onClick={() => handleSocialLogin('Google')} className="flex items-center justify-center gap-3 h-14 rounded-xl bg-surface-container-lowest border-2 border-surface-container-high hover:bg-surface-container-low transition-all duration-200 group">
               <img 
                 alt="Google" 
                 className="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" 
@@ -116,7 +158,7 @@ export default function LoginPage() {
               />
               <span className="text-sm font-bold text-on-surface-variant">Google</span>
             </button>
-            <button className="flex items-center justify-center gap-3 h-14 rounded-xl bg-surface-container-lowest border-2 border-surface-container-high hover:bg-surface-container-low transition-all duration-200 group">
+            <button type="button" onClick={() => handleSocialLogin('Microsoft')} className="flex items-center justify-center gap-3 h-14 rounded-xl bg-surface-container-lowest border-2 border-surface-container-high hover:bg-surface-container-low transition-all duration-200 group">
               <img 
                 alt="Microsoft" 
                 className="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" 
@@ -127,10 +169,78 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-12 text-sm text-on-surface-variant font-medium">
-            New to SI-BOOK? <a className="text-primary-container font-bold hover:underline" href="#">Request access</a>
+            New to SI-BOOK? <Link to="/signup" className="text-primary-container font-bold hover:underline">Request access</Link>
           </p>
         </div>
       </section>
+
+      {/* Custom Modal Overlay */}
+      {modalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className={`p-6 border-b border-surface-container flex items-center gap-4 ${modalConfig.type === 'error' ? 'text-error' : modalConfig.type === 'success' ? 'text-green-600' : 'text-primary'}`}>
+              <span className="material-symbols-outlined text-3xl">
+                {modalConfig.type === 'error' ? 'error' : modalConfig.type === 'prompt' ? 'mark_email_read' : modalConfig.type === 'success' ? 'check_circle' : 'info'}
+              </span>
+              <h3 className="font-headline font-bold text-xl">
+                {modalConfig.type === 'error' ? 'Authentication Error' : modalConfig.type === 'prompt' ? 'Reset Password' : modalConfig.type === 'success' ? 'Success' : 'Information'}
+              </h3>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              <p className="text-on-surface-variant font-medium whitespace-pre-wrap">
+                {modalConfig.message}
+              </p>
+              
+              {modalConfig.type === 'prompt' && (
+                <div className="mt-4">
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="nama@perusahaan.com"
+                    className="w-full h-12 px-4 bg-surface-container border border-surface-container-high rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 bg-surface-container-low flex justify-end gap-3">
+              <button 
+                onClick={() => {
+                  setModalConfig({ isOpen: false, type: '', message: '' });
+                  setResetEmail('');
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-surface-container-highest transition-colors"
+              >
+                {modalConfig.type === 'prompt' ? 'Cancel' : 'Close'}
+              </button>
+              
+              {modalConfig.type === 'prompt' && (
+                <button 
+                  onClick={() => {
+                    if (resetEmail) {
+                      setModalConfig({ 
+                        isOpen: true, 
+                        type: 'success', 
+                        message: `A password reset link has been sent to ${resetEmail}.\n\n(Note: This is a demo. To make this work in production, configure the SMTP server in the backend).` 
+                      });
+                      setResetEmail('');
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 hover:shadow-lg transition-all"
+                >
+                  Send Reset Link
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

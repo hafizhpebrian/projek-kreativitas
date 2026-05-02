@@ -1,8 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchApi } from '../lib/api';
+import TopRightNav from '../components/TopRightNav';
 
 export default function AdminManagementPage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  
+  const [stats, setStats] = useState({
+    totalBookingsToday: 0,
+    occupancyRate: 0,
+    activeRooms: 0,
+    totalRooms: 0,
+    issues: 0
+  });
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setLoading(true);
+        const [statsRes, activityRes] = await Promise.all([
+          fetchApi('/admin/stats'),
+          fetchApi('/admin/activity')
+        ]);
+        
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (activityRes.ok) setActivities(await activityRes.json());
+      } catch (err) {
+        console.error('Failed to load admin data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, []);
 
   return (
     <div className="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen">
@@ -45,8 +79,8 @@ export default function AdminManagementPage() {
             <span className="font-headline">Settings</span>
           </button>
         </nav>
-        <div className="mt-auto">
-          <button onClick={() => navigate('/login')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-red-50 hover:text-red-600">
+        <div className="mt-auto border-t border-slate-100 pt-6">
+          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error-container/20">
             <span className="material-symbols-outlined">logout</span>
             <span className="font-headline">Logout</span>
           </button>
@@ -62,19 +96,7 @@ export default function AdminManagementPage() {
               <input className="font-body w-full pl-10 pr-4 py-2 bg-surface-container border-none outline-none rounded-lg text-sm focus:bg-surface-container-lowest focus:ring-0 transition-all" placeholder="Search analytics, rooms, or users..." type="text" />
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <button className="relative text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900 font-body">Alex Thornton</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-body">Executive Admin</p>
-              </div>
-              <img alt="User avatar" className="w-10 h-10 rounded-full object-cover border-2 border-surface-container-high shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKmwRcF58VrJO-6dyjvLynIcCPH8fIPa8kMDeArtIAJET_oE0-gJEFacTZuxNN3hxR-6XKbDqwqPMZcFjkgDz6FwhjEp0pPGBRM6p04h1U0sQRt4uXOEwc8Svfu5Ji-wSTPihn4WotX43RCAnSWfv2mHE-HZ4EYrSIX4peVYI1trSmsUzal2C4wosnOudwGRlCqzJ-3GhegrYEgMib8leVOVZ6Hu53EbyBVHjLxc7o6ckBb4ME1sjwxLwczDbfOUQ76PcyVyp1GVQ" />
-            </div>
-          </div>
+          <TopRightNav />
         </div>
       </header>
 
@@ -84,16 +106,16 @@ export default function AdminManagementPage() {
         <div className="mb-10 flex justify-between items-end">
           <div>
             <h2 className="text-4xl font-extrabold tracking-tight text-primary font-headline mb-2">Executive Overview</h2>
-            <p className="text-on-surface-variant font-medium">Welcome back, Administrator. Here's your concierge status.</p>
+            <p className="text-on-surface-variant font-medium">Welcome back, {user?.name?.split(' ')[0] || 'Administrator'}. Here's your concierge status.</p>
           </div>
           <div className="flex gap-3">
             <button className="px-6 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-semibold text-sm shadow-[0_20px_40px_rgba(0,27,60,0.06)] hover:shadow-lg transition-all flex items-center gap-2">
               <span className="material-symbols-outlined text-lg">file_download</span>
               Export Report
             </button>
-            <button onClick={() => navigate('/rooms')} className="px-6 py-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg">add</span>
-              Quick Booking
+            <button onClick={() => navigate('/rooms/manage')} className="px-6 py-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">edit_square</span>
+              Manage Rooms
             </button>
           </div>
         </div>
@@ -107,11 +129,12 @@ export default function AdminManagementPage() {
               <div className="p-2 bg-primary-fixed rounded-lg text-on-primary-fixed">
                 <span className="material-symbols-outlined">event_available</span>
               </div>
-              <span className="text-xs font-bold text-tertiary-fixed-dim bg-tertiary-container px-2 py-1 rounded-full uppercase tracking-wider">+12%</span>
             </div>
             <div>
               <p className="text-sm font-medium text-on-surface-variant mb-1">Total Bookings Today</p>
-              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">24</h3>
+              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
+                {loading ? '...' : stats.totalBookingsToday}
+              </h3>
             </div>
           </div>
 
@@ -121,14 +144,15 @@ export default function AdminManagementPage() {
               <div className="p-2 bg-secondary-container rounded-lg text-on-secondary-container">
                 <span className="material-symbols-outlined">analytics</span>
               </div>
-              <span className="text-xs font-bold text-secondary-fixed-dim bg-primary-container px-2 py-1 rounded-full uppercase tracking-wider">Steady</span>
             </div>
             <div>
               <p className="text-sm font-medium text-on-surface-variant mb-1">Occupancy Rate</p>
-              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">85%</h3>
+              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
+                {loading ? '...' : `${stats.occupancyRate}%`}
+              </h3>
             </div>
             <div className="w-full bg-surface-container rounded-full h-1.5 mt-1">
-              <div className="bg-primary h-1.5 rounded-full w-[85%]"></div>
+              <div className="bg-primary h-1.5 rounded-full" style={{ width: `${stats.occupancyRate}%` }}></div>
             </div>
           </div>
 
@@ -141,7 +165,9 @@ export default function AdminManagementPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-on-surface-variant mb-1">Active Rooms</p>
-              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">12 <span className="text-sm font-medium text-slate-400">/ 14</span></h3>
+              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
+                {loading ? '...' : <>{stats.activeRooms} <span className="text-sm font-medium text-slate-400">/ {stats.totalRooms}</span></>}
+              </h3>
             </div>
           </div>
 
@@ -154,7 +180,9 @@ export default function AdminManagementPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-on-surface-variant mb-1">Conflicts / Issues</p>
-              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">0</h3>
+              <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
+                {loading ? '...' : stats.issues}
+              </h3>
             </div>
           </div>
         </div>
@@ -252,73 +280,62 @@ export default function AdminManagementPage() {
             <button className="text-sm font-semibold text-secondary hover:underline transition-all">View Full Logs</button>
           </div>
           <div className="space-y-1">
-            {/* Activity Item */}
-            <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-surface-container-low transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary-fixed/30 flex items-center justify-center text-primary-container">
-                  <span className="material-symbols-outlined">book_online</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Sarah Jenkins booked <span className="text-primary">Executive Suite</span></p>
-                  <p className="text-xs text-on-surface-variant">Scheduled for: Tomorrow, 10:00 AM</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-400 group-hover:text-slate-500">2 mins ago</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-tertiary-container text-tertiary-fixed mt-1">Confirmed</span>
-              </div>
-            </div>
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">Loading activities...</div>
+            ) : activities.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">No recent activity.</div>
+            ) : (
+              activities.map((activity, idx) => {
+                let icon = 'info';
+                let iconBg = 'bg-surface-container/30';
+                let iconColor = 'text-slate-500';
+                let statusBg = 'bg-surface-container';
+                let statusColor = 'text-on-surface-variant';
+                
+                if (activity.type === 'booking') {
+                  icon = 'book_online';
+                  iconBg = 'bg-primary-fixed/30';
+                  iconColor = 'text-primary-container';
+                  statusBg = 'bg-tertiary-container';
+                  statusColor = 'text-tertiary-fixed';
+                } else if (activity.type === 'cancellation') {
+                  icon = 'cancel';
+                  iconBg = 'bg-error-container/30';
+                  iconColor = 'text-error';
+                  statusBg = 'bg-surface-container-highest';
+                } else if (activity.type === 'user_registered') {
+                  icon = 'person_add';
+                  iconBg = 'bg-secondary-container/30';
+                  iconColor = 'text-secondary';
+                  statusBg = 'bg-secondary-container';
+                  statusColor = 'text-on-secondary-container';
+                }
 
-            {/* Activity Item */}
-            <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-surface-container-low transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-error-container/30 flex items-center justify-center text-error">
-                  <span className="material-symbols-outlined">cancel</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Marcus Thorne cancelled booking <span className="text-primary">Focus Pod 4</span></p>
-                  <p className="text-xs text-on-surface-variant">Reason: Schedule conflict</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-400 group-hover:text-slate-500">14 mins ago</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-surface-container-highest text-on-surface-variant mt-1">Processed</span>
-              </div>
-            </div>
+                const diff = new Date() - new Date(activity.timestamp);
+                const mins = Math.floor(diff / 60000);
+                const timeStr = mins < 60 ? `${mins} mins ago` : `${Math.floor(mins/60)} hrs ago`;
 
-            {/* Activity Item */}
-            <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-surface-container-low transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary">
-                  <span className="material-symbols-outlined">person_add</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">New User Account Registered: <span className="text-primary">Elena Rodriguez</span></p>
-                  <p className="text-xs text-on-surface-variant">Role: Department Lead</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-400 group-hover:text-slate-500">45 mins ago</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-secondary-container text-on-secondary-container mt-1">Verified</span>
-              </div>
-            </div>
-
-            {/* Activity Item */}
-            <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-surface-container-low transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary-fixed/30 flex items-center justify-center text-primary-container">
-                  <span className="material-symbols-outlined">settings_suggest</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">System Update: <span className="text-primary">Auto-release timers active</span></p>
-                  <p className="text-xs text-on-surface-variant">Global policy updated across all nodes</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-400 group-hover:text-slate-500">1 hr ago</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-primary-container text-primary-fixed mt-1">System</span>
-              </div>
-            </div>
+                return (
+                  <div key={idx} className="flex items-center justify-between p-4 rounded-2xl hover:bg-surface-container-low transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
+                        <span className="material-symbols-outlined">{icon}</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900">{activity.message}</p>
+                        <p className="text-xs text-on-surface-variant">{activity.detail}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-400 group-hover:text-slate-500">{timeStr}</p>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusBg} ${statusColor} mt-1`}>
+                        {activity.status}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </main>

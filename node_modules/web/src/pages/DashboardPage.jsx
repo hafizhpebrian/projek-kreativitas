@@ -1,7 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchApi } from '../lib/api';
+import TopRightNav from '../components/TopRightNav';
 
 export default function DashboardPage() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const [stats, setStats] = useState({ totalRooms: 0, availableNow: 0, todayBookings: 0 });
+  const [upcoming, setUpcoming] = useState([]);
+  const [popularRooms, setPopularRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setLoading(true);
+        const [statsRes, upcomingRes, popularRes] = await Promise.all([
+          fetchApi('/dashboard/stats'),
+          fetchApi('/dashboard/upcoming'),
+          fetchApi('/dashboard/popular-rooms')
+        ]);
+
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (upcomingRes.ok) setUpcoming(await upcomingRes.json());
+        if (popularRes.ok) setPopularRooms(await popularRes.json());
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, []);
+
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   const today = new Date();
@@ -39,7 +72,20 @@ export default function DashboardPage() {
 
   const prevMonth = () => setCalendarDate(new Date(calYear, calMonth - 1, 1));
   const nextMonth = () => setCalendarDate(new Date(calYear, calMonth + 1, 1));
-  const navigate = useNavigate();
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    return new Date(`1970-01-01T${timeStr}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getDayAndMonth = (dateStr) => {
+    if (!dateStr) return { day: '', month: '' };
+    const date = new Date(dateStr);
+    return {
+      day: date.getDate(),
+      month: date.toLocaleString('default', { month: 'short' })
+    };
+  };
 
   return (
     <div className="bg-surface text-on-surface min-h-screen overflow-y-auto">
@@ -50,7 +96,6 @@ export default function DashboardPage() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
         </div>
         <nav className="space-y-2 flex-grow">
-          {/* Active: Dashboard */}
           <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-900 dark:text-white font-bold border-r-4 border-slate-900 dark:border-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
             <span className="material-symbols-outlined">dashboard</span>
             <span className="text-sm">Dashboard</span>
@@ -67,21 +112,25 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined">bookmark_check</span>
             <span className="text-sm">My Bookings</span>
           </button>
-          <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">admin_panel_settings</span>
-            <span className="text-sm">Admin Management</span>
-          </button>
-          <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">bar_chart</span>
-            <span className="text-sm">Reports</span>
-          </button>
+          {user?.role === 'admin' && (
+            <>
+              <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
+                <span className="material-symbols-outlined">admin_panel_settings</span>
+                <span className="text-sm">Admin Management</span>
+              </button>
+              <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
+                <span className="material-symbols-outlined">bar_chart</span>
+                <span className="text-sm">Reports</span>
+              </button>
+            </>
+          )}
         </nav>
         <div className="mt-auto space-y-2 border-t border-slate-100 pt-6">
           <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
             <span className="material-symbols-outlined">settings</span>
             <span className="text-sm">Settings</span>
           </button>
-          <button onClick={() => navigate('/login')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+          <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error/10 text-left">
             <span className="material-symbols-outlined">logout</span>
             <span className="text-sm">Logout</span>
           </button>
@@ -94,19 +143,7 @@ export default function DashboardPage() {
           <span className="material-symbols-outlined text-on-surface-variant text-lg">search</span>
           <input className="bg-transparent border-none focus:ring-0 text-sm w-full font-['Inter'] outline-none" placeholder="Search for rooms or meetings..." type="text" />
         </div>
-        <div className="flex items-center gap-6">
-          <button className="relative text-slate-500 hover:text-slate-900 transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
-          </button>
-          <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
-            <div className="text-right">
-              <p className="text-xs font-bold text-slate-900">John Doe</p>
-              <p className="text-[10px] text-slate-500">Premium Member</p>
-            </div>
-            <img alt="User Avatar" className="w-8 h-8 rounded-full object-cover ring-2 ring-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAae_PPe5uO0wO5MkUprYmf4oMYorDMUNru8K0dWLSBEP0jDf4R2Nz2_RWfPI4VrbVRJgkwHbq8y93lXxM80TbnxfA3i9Z1uM3Q9vFUjmBpMkkyf5MwTOljsM0cif58WPtp-IJkX6xoUh9yqas4AQ5IckSAVvoiWKMGWo4XaG0rl_0Dm4uPYPAtCsg-LEcyh94zhHDNoBkld5m9oFjr_ym02-Lk8DVuanyewQdwQ_O6IwFr0HEcvWPsPwj9-A6BPKEAofU37TKMWCs" />
-          </div>
-        </div>
+        <TopRightNav />
       </header>
 
       {/* Main Content Canvas */}
@@ -114,94 +151,94 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-8 py-10">
           {/* Welcome Header */}
           <div className="mb-12">
-            <h2 className="text-4xl font-extrabold tracking-tight text-primary mb-2">Welcome back, John Doe</h2>
+            <h2 className="text-4xl font-extrabold tracking-tight text-primary mb-2">Welcome back, {user?.name?.split(' ')[0] || 'User'}</h2>
             <p className="text-on-surface-variant font-medium flex items-center gap-2">
               <span className="material-symbols-outlined text-base">event</span>
-              Monday, October 24, 2023
+              {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center gap-6">
-              <div className="w-14 h-14 bg-primary-container rounded-xl flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-3xl">domain</span>
+          {loading ? (
+             <div className="animate-pulse flex gap-6 mb-12">
+                {[1,2,3].map(i => <div key={i} className="h-24 bg-surface-container-highest rounded-xl flex-1"></div>)}
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center gap-6">
+                <div className="w-14 h-14 bg-primary-container rounded-xl flex items-center justify-center text-white">
+                  <span className="material-symbols-outlined text-3xl">domain</span>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Total Rooms</p>
+                  <h3 className="text-3xl font-extrabold text-primary">{stats.totalRooms || 0}</h3>
+                </div>
               </div>
-              <div>
-                <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Total Rooms</p>
-                <h3 className="text-3xl font-extrabold text-primary">12</h3>
-              </div>
-            </div>
 
-            <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center gap-6">
-              <div className="w-14 h-14 bg-tertiary-container rounded-xl flex items-center justify-center text-tertiary-fixed">
-                <span className="material-symbols-outlined text-3xl">event_available</span>
+              <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center gap-6">
+                <div className="w-14 h-14 bg-tertiary-container rounded-xl flex items-center justify-center text-tertiary-fixed">
+                  <span className="material-symbols-outlined text-3xl">event_available</span>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Available Now</p>
+                  <h3 className="text-3xl font-extrabold text-primary">{stats.availableNow || 0}</h3>
+                </div>
               </div>
-              <div>
-                <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Available Now</p>
-                <h3 className="text-3xl font-extrabold text-primary">5</h3>
-              </div>
-            </div>
 
-            <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center gap-6">
-              <div className="w-14 h-14 bg-secondary-container rounded-xl flex items-center justify-center text-on-secondary-container">
-                <span className="material-symbols-outlined text-3xl">book_online</span>
-              </div>
-              <div>
-                <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Today's Bookings</p>
-                <h3 className="text-3xl font-extrabold text-primary">3</h3>
+              <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center gap-6">
+                <div className="w-14 h-14 bg-secondary-container rounded-xl flex items-center justify-center text-on-secondary-container">
+                  <span className="material-symbols-outlined text-3xl">book_online</span>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Today's Bookings</p>
+                  <h3 className="text-3xl font-extrabold text-primary">{stats.todayBookings || 0}</h3>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Main Layout Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
             {/* Upcoming Bookings (Wide) */}
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center justify-between">
-                <h4 className="text-xl font-bold text-primary">Upcoming Bookings</h4>
-                <button className="text-sm font-semibold text-secondary hover:underline">View All</button>
+                <h4 className="text-xl font-bold text-primary">Your Upcoming Bookings</h4>
+                <button onClick={() => navigate('/bookings')} className="text-sm font-semibold text-secondary hover:underline">View All</button>
               </div>
 
               {/* Booking Cards */}
               <div className="space-y-4">
-                <div className="bg-surface-container-lowest p-5 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center justify-between group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                  <div className="flex items-center gap-5">
-                    <div className="bg-surface-container w-12 h-12 rounded-lg flex flex-col items-center justify-center">
-                      <span className="text-[10px] font-bold uppercase text-on-surface-variant">Oct</span>
-                      <span className="text-lg font-extrabold text-primary">24</span>
+                {loading ? (
+                   <p className="text-slate-500 animate-pulse">Loading upcoming bookings...</p>
+                ) : upcoming.length === 0 ? (
+                   <div className="bg-surface-container-lowest p-8 rounded-xl border border-dashed border-slate-200 text-center">
+                     <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">event_busy</span>
+                     <p className="text-slate-500 font-medium">No upcoming bookings found.</p>
+                     <button onClick={() => navigate('/rooms')} className="mt-4 text-primary font-bold hover:underline">Book a room</button>
+                   </div>
+                ) : upcoming.map((booking) => {
+                  const { month, day } = getDayAndMonth(booking.booking_date);
+                  return (
+                    <div key={booking.id} className="bg-surface-container-lowest p-5 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center justify-between group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
+                      <div className="flex items-center gap-5">
+                        <div className="bg-surface-container w-12 h-12 rounded-lg flex flex-col items-center justify-center">
+                          <span className="text-[10px] font-bold uppercase text-on-surface-variant">{month}</span>
+                          <span className="text-lg font-extrabold text-primary">{day}</span>
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-primary">{booking.title}</h5>
+                          <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
+                            <span className="material-symbols-outlined text-[14px]">meeting_room</span> {booking.room?.name || 'Unknown Room'} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full tracking-wider uppercase ${booking.status === 'confirmed' ? 'bg-tertiary-container text-tertiary-fixed' : 'bg-surface-container-highest text-slate-500'}`}>{booking.status}</span>
+                        <button className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">more_vert</button>
+                      </div>
                     </div>
-                    <div>
-                      <h5 className="font-bold text-primary">Sprint Planning</h5>
-                      <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
-                        <span className="material-symbols-outlined text-[14px]">meeting_room</span> Room A • 10:00 AM - 11:00 AM
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="bg-tertiary-container text-tertiary-fixed text-[10px] font-bold px-3 py-1 rounded-full tracking-wider uppercase">Confirmed</span>
-                    <button className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">more_vert</button>
-                  </div>
-                </div>
-
-                <div className="bg-surface-container-lowest p-5 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center justify-between group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                  <div className="flex items-center gap-5">
-                    <div className="bg-surface-container w-12 h-12 rounded-lg flex flex-col items-center justify-center">
-                      <span className="text-[10px] font-bold uppercase text-on-surface-variant">Oct</span>
-                      <span className="text-lg font-extrabold text-primary">25</span>
-                    </div>
-                    <div>
-                      <h5 className="font-bold text-primary">Client Demo</h5>
-                      <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
-                        <span className="material-symbols-outlined text-[14px]">meeting_room</span> Boardroom • 02:30 PM - 03:30 PM
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="bg-tertiary-container text-tertiary-fixed text-[10px] font-bold px-3 py-1 rounded-full tracking-wider uppercase">Confirmed</span>
-                    <button className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">more_vert</button>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -238,7 +275,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Quick Book Action */}
-              <button onClick={() => navigate('/rooms')} className="w-full h-16 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl shadow-[0_15px_30px_rgba(0,9,27,0.2)] flex items-center justify-center gap-3 font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all">
+              <button onClick={() => navigate('/bookings/new')} className="w-full h-16 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl shadow-[0_15px_30px_rgba(0,9,27,0.2)] flex items-center justify-center gap-3 font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all">
                 <span className="material-symbols-outlined">add_circle</span>
                 Quick Book Room
               </button>
@@ -249,100 +286,60 @@ export default function DashboardPage() {
           <div>
             <h4 className="text-xl font-bold text-primary mb-6">Popular Rooms</h4>
             <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8">
-              {/* Room Card 1 */}
-              <div onClick={() => navigate('/rooms/executive-lounge')} className="min-w-[280px] bg-surface-container-lowest rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden group cursor-pointer hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                <div className="h-32 overflow-hidden">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Executive Lounge room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnkWdtRT7r7BesdYvtXgpRwZeFMQKttRvWPspRuu3V_xZF62mff4wtN7QAzAvzO2daUoCbuiO_SS1b4J7qJloOtH2DBPZijSdOkEL0BEkAwCFsz9-LtNByFvQcAuBTASUicHzJMXau-u4vohfCi0vLSfHOHefb75ZNzlarhUj2_NE9AeAupnx7ub5UIk_TuMAVid-E4hZy_fhZnLhoBOG4c5WAjF_nnP22IT6Ku3PFeG8izlnzkThImDJQYvTqnj8NCx6lctIqnqE" />
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h6 className="font-bold text-primary">Executive Lounge</h6>
-                    <div className="flex items-center gap-1 text-xs font-bold text-secondary">
-                      <span className="material-symbols-outlined text-[14px] fill-current" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
+              {loading ? (
+                 <div className="flex gap-6">
+                    {[1,2,3,4].map(i => <div key={i} className="min-w-[280px] h-64 bg-surface-container-highest rounded-xl animate-pulse"></div>)}
+                 </div>
+              ) : popularRooms.length === 0 ? (
+                 <p className="text-slate-500">No rooms available.</p>
+              ) : popularRooms.map(room => (
+                <div key={room.id} onClick={() => navigate(`/rooms/${room.id}`)} className="min-w-[280px] bg-surface-container-lowest rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden group cursor-pointer hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all flex flex-col">
+                  <div className="h-32 overflow-hidden bg-slate-100 flex-shrink-0">
+                    {room.images && room.images.length > 0 ? (
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={room.name} src={room.images[0].filePath.startsWith('http') ? room.images[0].filePath : `http://localhost:3001/${room.images[0].filePath}`} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <span className="material-symbols-outlined text-4xl">meeting_room</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex-grow flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h6 className="font-bold text-primary truncate max-w-[180px]">{room.name}</h6>
+                        <div className="flex items-center gap-1 text-xs font-bold text-secondary">
+                          <span className="material-symbols-outlined text-[14px] fill-current" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {room.rating ? Number(room.rating).toFixed(1) : 'New'}
+                        </div>
+                      </div>
+                      <p className="text-xs text-on-surface-variant line-clamp-2">{room.description || 'No description available.'}</p>
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center gap-2 text-on-surface-variant text-xs font-medium">
+                        <span className="material-symbols-outlined text-base">groups</span> {room.capacity}
+                      </div>
+                      <span className="bg-surface-container px-2 py-1 rounded text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{room.floor_level || 'General'}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2 text-on-surface-variant text-xs font-medium">
-                      <span className="material-symbols-outlined text-base">groups</span> Up to 8
-                    </div>
-                    <span className="bg-surface-container px-2 py-1 rounded text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Premium</span>
-                  </div>
                 </div>
-              </div>
-
-              {/* Room Card 2 */}
-              <div onClick={() => navigate('/rooms/skyline-suite')} className="min-w-[280px] bg-surface-container-lowest rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden group cursor-pointer hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                <div className="h-32 overflow-hidden">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Skyline Suite room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1dFp4cjDro7b4ft9Nhg6XgDBJ635Sxu1Qm_L9o3Nsyn2g3NDzMEjkQezg0NhAKbrQAliWy7wY4ix-WCevtFCbV8PxmxuSHZdcOjzxbAcf4ysIOe89xpdmy_qIRndKlPXM_Fv3QvHxTfwgj8gueD9eTZTHTc9YuhVSAnUAITuYvsMffcRJKVYPuqdBOSy2zJ-AWvusrUQajm37nJIL6rJIQApFaK3mm0zlFYay_mJ0G8KU1v7mbvkzZI_xftXzQ9161rrXUHYLqfY" />
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h6 className="font-bold text-primary">Skyline Suite</h6>
-                    <div className="flex items-center gap-1 text-xs font-bold text-secondary">
-                      <span className="material-symbols-outlined text-[14px] fill-current" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2 text-on-surface-variant text-xs font-medium">
-                      <span className="material-symbols-outlined text-base">groups</span> Up to 12
-                    </div>
-                    <span className="bg-surface-container px-2 py-1 rounded text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Standard</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Room Card 3 */}
-              <div onClick={() => navigate('/rooms/focus-pod-b')} className="min-w-[280px] bg-surface-container-lowest rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden group cursor-pointer hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                <div className="h-32 overflow-hidden">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Focus Pod B" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrQUt5iQL1U3WMckHcJX8O9hPM0skDnP3v7S1ahUDeWPKeeVRioHVT9RlxWFu9-YjBOX0alZ2nfDtlCrnloUYzEBV51fncjq0LE277KNXXQx85MNI61emgVML0GcZNlDXA2e1qwxvwi5HfYUPFfprJFFc5J8b1tEhEel99lEUVM4AOBOX-aTL3PkpvBP0gF2KL9S9SmRgaW7xttHbagrgPrNIyctNVQEkwQ3M8Cz8k7_Zs0igolaoGwd7V4KycJgp8HGz5a-r1P5E" />
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h6 className="font-bold text-primary">Focus Pod B</h6>
-                    <div className="flex items-center gap-1 text-xs font-bold text-secondary">
-                      <span className="material-symbols-outlined text-[14px] fill-current" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.7
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2 text-on-surface-variant text-xs font-medium">
-                      <span className="material-symbols-outlined text-base">groups</span> 1-2 Persons
-                    </div>
-                    <span className="bg-surface-container px-2 py-1 rounded text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Private</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Room Card 4 */}
-              <div onClick={() => navigate('/rooms/the-library')} className="min-w-[280px] bg-surface-container-lowest rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden group cursor-pointer hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                <div className="h-32 overflow-hidden">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="The Library" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfb9vKeWdUM_CZa2a4vduf0MTsw-viJkx-ZX_GDke7JIYcXw9ZO1Sb6g-WIB_q2F_ME04c7v29zJyFF6GbHhuAhfbjEkf7l9_syZF3vtd67P3w8iamI9iNQITToDKAFH2yc723cy6ZbysODoOFgM36BuYsI9k-l0urO86nJE7AlPmYXwJl6iJApUG0YlriReJGQkSbG2dXx8Ga87XtCRDxPh-GqXO4S7OWDmPQ58dn4NLE5-gdfpoc0dRL0DvMf_QX-FMvJP7EF-8" />
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h6 className="font-bold text-primary">The Library</h6>
-                    <div className="flex items-center gap-1 text-xs font-bold text-secondary">
-                      <span className="material-symbols-outlined text-[14px] fill-current" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.5
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2 text-on-surface-variant text-xs font-medium">
-                      <span className="material-symbols-outlined text-base">groups</span> Up to 20
-                    </div>
-                    <span className="bg-surface-container px-2 py-1 rounded text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Public</span>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </main>
 
       {/* Contextual FAB */}
-      <div className="fixed bottom-10 right-10 z-50">
-        <button className="w-16 h-16 bg-primary text-white rounded-full shadow-[0_20px_40px_rgba(0,9,27,0.3)] flex items-center justify-center hover:scale-110 active:scale-90 transition-transform">
-          <span className="material-symbols-outlined text-3xl">bolt</span>
+      <div className="fixed bottom-10 right-10 z-50 group flex items-center gap-4">
+        <div className="bg-surface-container-highest text-on-surface-variant text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none translate-x-4 group-hover:translate-x-0 duration-300">
+          Hubungi CS
+        </div>
+        <button 
+          onClick={() => window.location.href = 'mailto:support@si-book.com'}
+          className="w-16 h-16 bg-primary text-white rounded-full shadow-[0_20px_40px_rgba(0,9,27,0.3)] flex items-center justify-center hover:scale-110 active:scale-90 transition-all hover:bg-secondary"
+        >
+          <span className="material-symbols-outlined text-3xl">support_agent</span>
         </button>
       </div>
     </div>
   );
 }
+

@@ -1,62 +1,152 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import TopRightNav from '../components/TopRightNav';
+import { fetchApi } from '../lib/api';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '', phone: '', jobTitle: '', department: '', language: 'en'
+  });
+  const [prefs, setPrefs] = useState({ notifyEmail: true, notifyPush: false, notifySms: false });
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const res = await fetchApi('/users/me');
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(data);
+        setFormData({
+          name: data.name || '',
+          phone: data.phone || '',
+          jobTitle: data.jobTitle || '',
+          department: data.department || '',
+          language: data.language || 'en',
+        });
+        setPrefs({
+          notifyEmail: data.notifyEmail ?? true,
+          notifyPush: data.notifyPush ?? false,
+          notifySms: data.notifySms ?? false,
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load profile:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const res = await fetchApi('/users/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(data);
+        showToast('Profile saved successfully!');
+      } else {
+        showToast('Failed to save profile', 'error');
+      }
+    } catch (e) {
+      showToast('An error occurred', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePref = async (key) => {
+    const newPrefs = { ...prefs, [key]: !prefs[key] };
+    setPrefs(newPrefs);
+    try {
+      await fetchApi('/users/me/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPrefs),
+      });
+      showToast('Preference updated!');
+    } catch (e) {
+      showToast('Failed to update preference', 'error');
+      setPrefs(prefs); // revert
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const navItems = [
+    { icon: 'dashboard', label: 'Dashboard', path: '/dashboard' },
+    { icon: 'meeting_room', label: 'Rooms', path: '/rooms' },
+    { icon: 'calendar_today', label: 'Calendar', path: '/calendar' },
+    { icon: 'event_available', label: 'My Bookings', path: '/bookings' },
+    ...(user?.role === 'admin' ? [
+      { icon: 'admin_panel_settings', label: 'Admin Management', path: '/admin' },
+      { icon: 'bar_chart', label: 'Reports', path: '/reports' },
+    ] : []),
+    { icon: 'settings', label: 'Settings', path: '/settings', active: true },
+  ];
+
+  if (loading) {
+    return (
+      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-xl shadow-xl text-white font-bold text-sm flex items-center gap-2 animate-[slideDown_0.3s_ease] ${toast.type === 'error' ? 'bg-error' : 'bg-primary'}`}>
+          <span className="material-symbols-outlined text-sm">{toast.type === 'error' ? 'error' : 'check_circle'}</span>
+          {toast.msg}
+        </div>
+      )}
+
       {/* SideNavBar */}
       <aside className="h-screen w-64 fixed left-0 top-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-xl flex flex-col py-6 px-4 z-50 shadow-[20px_0_40px_rgba(0,27,60,0.04)]">
         <div className="mb-10 px-4">
           <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
         </div>
-
         <nav className="flex-1 space-y-1">
-          {/* Dashboard */}
-          <button onClick={() => navigate('/dashboard')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
-            <span className="material-symbols-outlined">dashboard</span>
-            Dashboard
-          </button>
-          {/* Rooms */}
-          <button onClick={() => navigate('/rooms')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
-            <span className="material-symbols-outlined">meeting_room</span>
-            Rooms
-          </button>
-          {/* Calendar */}
-          <button onClick={() => navigate('/calendar')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
-            <span className="material-symbols-outlined">calendar_today</span>
-            Calendar
-          </button>
-          {/* My Bookings */}
-          <button onClick={() => navigate('/bookings')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
-            <span className="material-symbols-outlined">event_available</span>
-            My Bookings
-          </button>
-          {/* Admin Management */}
-          <button onClick={() => navigate('/admin')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
-            <span className="material-symbols-outlined">admin_panel_settings</span>
-            Admin Management
-          </button>
-          {/* Reports */}
-          <button onClick={() => navigate('/reports')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
-            <span className="material-symbols-outlined">bar_chart</span>
-            Reports
-          </button>
-          {/* Settings (ACTIVE) */}
-          <button className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-900 dark:text-white bg-slate-200/50 dark:bg-slate-800/50 rounded-lg font-manrope font-semibold text-sm cursor-pointer active:opacity-80">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>settings</span>
-            Settings
-          </button>
+          {navItems.map(item => (
+            <button key={item.path} onClick={() => !item.active && navigate(item.path)}
+              className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg font-manrope font-semibold text-sm transition-all ${item.active ? 'text-slate-900 dark:text-white bg-slate-200/50 dark:bg-slate-800/50' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200'}`}>
+              <span className="material-symbols-outlined" style={item.active ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
         </nav>
-
-        <div className="mt-auto border-t border-transparent pt-6">
-          <button className="w-full bg-gradient-to-br from-primary to-primary-container text-white py-3 rounded-xl font-bold text-sm shadow-xl hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 mb-6">
+        <div className="mt-auto border-t border-slate-100 pt-6">
+          <button onClick={() => navigate('/bookings/new')} className="w-full bg-gradient-to-br from-primary to-primary-container text-white py-3 rounded-xl font-bold text-sm shadow-xl hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 mb-6">
             <span className="material-symbols-outlined text-sm">add</span>
             New Booking
           </button>
-          <button onClick={() => navigate('/login')} className="w-full text-left flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200 font-manrope font-semibold text-sm">
+          <button onClick={handleLogout} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error-container/20">
             <span className="material-symbols-outlined">logout</span>
             Logout
           </button>
@@ -68,28 +158,9 @@ export default function SettingsPage() {
         {/* TopNavBar */}
         <header className="w-full h-16 sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-8 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="md:hidden">
-              <span className="material-symbols-outlined">menu</span>
-            </div>
             <h2 className="font-headline tracking-tight font-bold text-slate-900 dark:text-slate-50">Settings & Profile</h2>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="relative flex items-center bg-surface-container rounded-full px-4 py-1.5 focus-within:bg-surface-container-lowest transition-all group font-body">
-              <span className="material-symbols-outlined text-outline text-sm">search</span>
-              <input className="bg-transparent border-none outline-none focus:ring-0 text-sm w-48 placeholder:text-outline-variant" placeholder="Search preferences..." type="text" />
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="p-2 text-slate-500 hover:bg-slate-200/50 rounded-full transition-colors">
-                <span className="material-symbols-outlined">notifications</span>
-              </button>
-              <button className="p-2 text-slate-500 hover:bg-slate-200/50 rounded-full transition-colors">
-                <span className="material-symbols-outlined">help_outline</span>
-              </button>
-              <div className="h-8 w-8 rounded-full overflow-hidden ml-2 shadow-sm ring-2 ring-surface-container">
-                <img alt="User avatar" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlvRTslMSVNy2v5s_5sEfYBIDoWOw3nf7V84qHEKbOKLMQRfSGLVt1tBHDcJAJaHbZpf3kwuAAWx-obgKlrmHnbX9DXVcfx1z56W6Sxmr17RxbanjC3kBHJ5RPGefxPM4GHAG4l_D7XwBFCJ7Onuod2EKasd9PU5bLgVEtWvF7tnageKtf_GGvx4KNVthVqtqGsGCqgDHXhu2SbtnyCmXTqaavWBpLh9Uzmf1CoFPKWu9nkMHPoXuUY0O-4EGY3RP5SetUGBaDnBY" />
-              </div>
-            </div>
-          </div>
+          <TopRightNav />
         </header>
 
         {/* Canvas Content */}
@@ -106,34 +177,52 @@ export default function SettingsPage() {
               <div className="bg-surface-container-lowest p-8 rounded-[2rem] shadow-[0_20px_40px_rgba(0,27,60,0.06)] relative overflow-hidden">
                 <div className="flex flex-col md:flex-row gap-10 items-start">
                   <div className="relative group">
-                    <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-surface-container-low shadow-xl">
-                      <img alt="Profile image" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAE58I5hOW_KeshN49Nj4P0otq8Ge3raRx-HD06t9vv9l4jSjNkmUJQlfIvOQb1g9Ylz5ddEBxNrjG_7LEOHzLL24LLoEplIGOeo6vhM5ftRuIld07jwYCQJHLfFCazaT3hrYd1i1mMkHx31kqgQ9_9GEPQGLPF0JPbHOUd-1Mnyyuz14NXtj7OL42saCnzVl7v1XffcAz-6g1chBpX3T_5NcXF8uMO4aTuODftU6iTXrxOMzTr0CyuL-qB3_Kk_ABcruTSkbw9b5Y" />
+                    <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-surface-container-low shadow-xl bg-primary flex items-center justify-center text-white">
+                      <span className="text-5xl font-bold">{profile?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                     </div>
-                    <button className="absolute -bottom-2 -right-2 bg-primary-container text-white p-2 rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center justify-center">
-                      <span className="material-symbols-outlined text-lg">edit</span>
-                    </button>
                   </div>
                   <div className="flex-1 w-full space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
                         <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Full Name</label>
-                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text" defaultValue="Alexander Sterling" />
+                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text"
+                          value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Job Title</label>
-                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text" defaultValue="Chief Strategy Officer" />
+                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text"
+                          value={formData.jobTitle} onChange={e => setFormData({...formData, jobTitle: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Email Address</label>
-                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="email" defaultValue="a.sterling@si-book.digital" />
+                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium opacity-60 cursor-not-allowed" type="email"
+                          value={profile?.email || ''} disabled />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Phone Number</label>
-                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="tel" defaultValue="+1 (555) 890-2344" />
+                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="tel"
+                          value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+62 812 3456 7890" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Department</label>
+                        <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text"
+                          value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} placeholder="Engineering" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Interface Language</label>
+                        <select className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:ring-0 font-medium"
+                          value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})}>
+                          <option value="en">English</option>
+                          <option value="id">Bahasa Indonesia</option>
+                        </select>
                       </div>
                     </div>
                     <div className="pt-4 flex justify-end">
-                      <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-primary/20 transition-all">Save Profile</button>
+                      <button onClick={saveProfile} disabled={saving}
+                        className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 flex items-center gap-2">
+                        {saving && <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>}
+                        {saving ? 'Saving...' : 'Save Profile'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -147,13 +236,13 @@ export default function SettingsPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Email */}
-                  <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow cursor-pointer group">
+                  <div onClick={() => togglePref('notifyEmail')} className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow cursor-pointer group">
                     <div className="flex justify-between items-start">
                       <div className="w-10 h-10 rounded-lg bg-tertiary-container flex items-center justify-center text-tertiary-fixed">
                         <span className="material-symbols-outlined">mail</span>
                       </div>
-                      <div className="w-12 h-6 bg-tertiary-container rounded-full relative p-1 flex items-center justify-end transition-all">
-                        <div className="w-4 h-4 bg-tertiary-fixed rounded-full shadow-sm"></div>
+                      <div className={`w-12 h-6 rounded-full relative p-1 flex items-center transition-all ${prefs.notifyEmail ? 'bg-tertiary-container justify-end' : 'bg-surface-container-highest justify-start'}`}>
+                        <div className={`w-4 h-4 rounded-full shadow-sm ${prefs.notifyEmail ? 'bg-tertiary-fixed' : 'bg-on-surface-variant'}`}></div>
                       </div>
                     </div>
                     <div>
@@ -162,13 +251,13 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   {/* Push */}
-                  <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow cursor-pointer group">
+                  <div onClick={() => togglePref('notifyPush')} className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow cursor-pointer group">
                     <div className="flex justify-between items-start">
                       <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
                         <span className="material-symbols-outlined">send_to_mobile</span>
                       </div>
-                      <div className="w-12 h-6 bg-surface-container-highest rounded-full relative p-1 flex items-center justify-start transition-all">
-                        <div className="w-4 h-4 bg-on-surface-variant rounded-full shadow-sm"></div>
+                      <div className={`w-12 h-6 rounded-full relative p-1 flex items-center transition-all ${prefs.notifyPush ? 'bg-tertiary-container justify-end' : 'bg-surface-container-highest justify-start'}`}>
+                        <div className={`w-4 h-4 rounded-full shadow-sm ${prefs.notifyPush ? 'bg-tertiary-fixed' : 'bg-on-surface-variant'}`}></div>
                       </div>
                     </div>
                     <div>
@@ -177,13 +266,13 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   {/* SMS */}
-                  <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow cursor-pointer group">
+                  <div onClick={() => togglePref('notifySms')} className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow cursor-pointer group">
                     <div className="flex justify-between items-start">
                       <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
                         <span className="material-symbols-outlined">sms</span>
                       </div>
-                      <div className="w-12 h-6 bg-surface-container-highest rounded-full relative p-1 flex items-center justify-start transition-all">
-                        <div className="w-4 h-4 bg-on-surface-variant rounded-full shadow-sm"></div>
+                      <div className={`w-12 h-6 rounded-full relative p-1 flex items-center transition-all ${prefs.notifySms ? 'bg-tertiary-container justify-end' : 'bg-surface-container-highest justify-start'}`}>
+                        <div className={`w-4 h-4 rounded-full shadow-sm ${prefs.notifySms ? 'bg-tertiary-fixed' : 'bg-on-surface-variant'}`}></div>
                       </div>
                     </div>
                     <div>
@@ -203,40 +292,26 @@ export default function SettingsPage() {
                   <p className="text-xs text-on-surface-variant mt-1">Protect your executive workspace.</p>
                 </div>
                 <div className="space-y-6">
-                  <button className="w-full flex items-center justify-between p-4 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-colors group">
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-primary">key</span>
-                      <span className="text-sm font-semibold">Change Password</span>
-                    </div>
-                    <span className="material-symbols-outlined text-outline-variant group-hover:translate-x-1 transition-transform">chevron_right</span>
-                  </button>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Interface Language</label>
-                    <div className="relative">
-                      <select className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:ring-0 appearance-none font-medium">
-                        <option>English (US)</option>
-                        <option>English (UK)</option>
-                        <option>Deutsch</option>
-                        <option>Français</option>
-                        <option>日本語</option>
-                      </select>
-                      <span className="material-symbols-outlined absolute right-3 top-3 text-on-surface-variant pointer-events-none">expand_more</span>
-                    </div>
-                  </div>
-                  <div className="pt-4 space-y-3">
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-semibold">Two-Factor Auth</span>
-                      <span className="text-[10px] bg-tertiary-container text-tertiary-fixed px-2 py-0.5 rounded-full font-bold">ENABLED</span>
+                      <span className="text-xs font-semibold">Role</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${profile?.role === 'admin' ? 'bg-tertiary-container text-tertiary-fixed' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        {profile?.role?.toUpperCase() || 'USER'}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-semibold">Active Sessions</span>
-                      <span className="text-[10px] bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full font-bold">2 DEVICES</span>
+                      <span className="text-xs font-semibold">Email Verified</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${profile?.emailVerified ? 'bg-tertiary-container text-tertiary-fixed' : 'bg-error-container text-error'}`}>
+                        {profile?.emailVerified ? 'VERIFIED' : 'NOT VERIFIED'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-semibold">Member Since</span>
+                      <span className="text-[10px] bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full font-bold">
+                        {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' }) : '-'}
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div className="pt-6 border-t border-surface-container space-y-4 flex flex-col">
-                  <button className="w-full text-center py-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">Download Data Archive</button>
-                  <button className="w-full text-center py-2 text-xs font-bold text-error hover:underline transition-colors">Request Account Deletion</button>
                 </div>
               </div>
 
@@ -244,22 +319,16 @@ export default function SettingsPage() {
               <div className="bg-primary rounded-[2rem] p-8 text-white space-y-6 shadow-xl relative overflow-hidden group">
                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary-container rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                 <div className="relative z-10">
-                  <p className="text-[10px] uppercase tracking-[0.2em] opacity-60 font-bold mb-4">Concierge Level</p>
-                  <h4 className="text-2xl font-black font-headline">Executive Platinum</h4>
+                  <p className="text-[10px] uppercase tracking-[0.2em] opacity-60 font-bold mb-4">Account Info</p>
+                  <h4 className="text-2xl font-black font-headline">{profile?.name || 'User'}</h4>
+                  <p className="text-sm opacity-80 mt-1">{profile?.email}</p>
                   <div className="mt-6 flex items-end gap-2">
-                    <span className="text-4xl font-bold">42</span>
-                    <span className="text-xs opacity-60 mb-1.5 uppercase font-bold tracking-widest">Bookings this month</span>
+                    <span className="text-sm opacity-60">{profile?.department || 'No department set'}</span>
                   </div>
                   <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center">
-                    <div className="flex -space-x-2">
-                      <div className="w-8 h-8 rounded-full border-2 border-primary overflow-hidden">
-                        <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDADLKC5WkMReUnYdaMFKMNY2pxkpJpSMiVTNIorf0resUomXnWj3kqf7q5jxkbIcJO39xzaTP_n60TNPN6T-80wQn_qB1LeqPULUXe3tvPAqdSDQ0vGgAHrBvowocKbChTI6VJxHlbeUDeYELvjQPR5LeciJ-uzulm-YCo8Zm6GTgLSEm2WadIxxotFjTvNtAzqBfNPocJ4EZxajispQvICeyPHDKpg20uG0M3FeGU9qq9nC8TWCpllJOwMsjFgNyS3XjNaoW4P8g" />
-                      </div>
-                      <div className="w-8 h-8 rounded-full border-2 border-primary bg-primary-container flex items-center justify-center text-[10px] font-bold">
-                        +5
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold tracking-widest uppercase py-1 px-3 bg-white/10 rounded-full">Member since 2022</span>
+                    <span className="text-[10px] font-bold tracking-widest uppercase py-1 px-3 bg-white/10 rounded-full">
+                      {profile?.role === 'admin' ? '🛡️ Administrator' : '👤 Member'}
+                    </span>
                   </div>
                 </div>
               </div>
