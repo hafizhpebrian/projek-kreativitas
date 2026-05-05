@@ -11,8 +11,14 @@ import fs from "fs";
 const router = Router();
 
 // Multer config for room image uploads
-const uploadDir = process.env.UPLOAD_DIR || "uploads";
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+// On Vercel, we use /tmp for temporary storage if UPLOAD_DIR is not available or writeable
+const isProduction = process.env.NODE_ENV === "production";
+const uploadDir = isProduction ? "/tmp" : (process.env.UPLOAD_DIR || "uploads");
+
+// Only create directory if NOT on Vercel/Production (read-only filesystem)
+if (!isProduction && !fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
