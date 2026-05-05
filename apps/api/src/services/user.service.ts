@@ -7,6 +7,12 @@ export const userService = {
     return db.query.user.findFirst({ where: eq(user.id, userId) });
   },
 
+  async getAllUsers() {
+    return db.query.user.findMany({
+      columns: { id: true, name: true, email: true, role: true },
+    });
+  },
+
   async updateProfile(userId: string, data: Partial<{ name: string; phone: string; jobTitle: string; department: string; language: string; image: string }>) {
     await db.update(user).set({ ...data, updatedAt: new Date() }).where(eq(user.id, userId));
     return this.getProfile(userId);

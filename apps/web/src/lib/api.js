@@ -1,5 +1,6 @@
 // Base URL for the backend API
-export const API_URL = 'http://localhost:3001/api';
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_URL = `${API_BASE}/api`;
 
 /**
  * A wrapper around the native fetch API that automatically adds
@@ -18,6 +19,7 @@ export async function fetchApi(endpoint, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true', // Important to bypass Localtunnel warning page
       ...options.headers,
     },
     // Crucial for better-auth session cookies to be sent across origins

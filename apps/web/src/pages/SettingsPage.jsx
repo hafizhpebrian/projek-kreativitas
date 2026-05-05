@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import TopRightNav from '../components/TopRightNav';
 import { fetchApi } from '../lib/api';
+import Sidebar from '../components/Sidebar';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -127,36 +128,12 @@ export default function SettingsPage() {
       )}
 
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-xl flex flex-col py-6 px-4 z-50 shadow-[20px_0_40px_rgba(0,27,60,0.04)]">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          {navItems.map(item => (
-            <button key={item.path} onClick={() => !item.active && navigate(item.path)}
-              className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg font-manrope font-semibold text-sm transition-all ${item.active ? 'text-slate-900 dark:text-white bg-slate-200/50 dark:bg-slate-800/50' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:translate-x-1 transition-transform duration-200'}`}>
-              <span className="material-symbols-outlined" style={item.active ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <div className="mt-auto border-t border-slate-100 pt-6">
-          <button onClick={() => navigate('/bookings/new')} className="w-full bg-gradient-to-br from-primary to-primary-container text-white py-3 rounded-xl font-bold text-sm shadow-xl hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 mb-6">
-            <span className="material-symbols-outlined text-sm">add</span>
-            New Booking
-          </button>
-          <button onClick={handleLogout} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error-container/20">
-            <span className="material-symbols-outlined">logout</span>
-            Logout
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-64 min-h-screen">
+      <main className="flex-1 ml-0 lg:ml-64 min-h-screen">
         {/* TopNavBar */}
-        <header className="w-full h-16 sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-8 shadow-sm">
+        <header className="w-full h-16 sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 shadow-sm">
           <div className="flex items-center gap-4">
             <h2 className="font-headline tracking-tight font-bold text-slate-900 dark:text-slate-50">Settings & Profile</h2>
           </div>

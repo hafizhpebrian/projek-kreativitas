@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchApi } from '../lib/api';
+import { fetchApi, API_BASE } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function RoomExplorerPage() {
   const { user, logout } = useAuth();
@@ -13,6 +14,12 @@ export default function RoomExplorerPage() {
   const [amenities, setAmenities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, roomId: null, roomName: '' });
+
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterFloor, setFilterFloor] = useState('All Floors');
+  const [filterCapacity, setFilterCapacity] = useState('Any Capacity');
+  const [filterAmenities, setFilterAmenities] = useState([]);
 
   // Add Room Form State
   const [newRoomData, setNewRoomData] = useState({
@@ -84,6 +91,39 @@ export default function RoomExplorerPage() {
       setLoading(false);
     }
   };
+
+  const filteredRooms = rooms.filter(room => {
+    // 1. Search Query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = room.name.toLowerCase().includes(query);
+      const matchesFloor = room.floor?.toLowerCase().includes(query);
+      if (!matchesName && !matchesFloor) return false;
+    }
+    
+    // 2. Floor Filter
+    if (filterFloor !== 'All Floors') {
+      if (room.floor !== filterFloor) return false;
+    }
+    
+    // 3. Capacity Filter
+    if (filterCapacity !== 'Any Capacity') {
+      const cap = room.capacity;
+      if (filterCapacity === '1-4 People' && (cap < 1 || cap > 4)) return false;
+      if (filterCapacity === '5-10 People' && (cap < 5 || cap > 10)) return false;
+      if (filterCapacity === '10-20 People' && (cap < 10 || cap > 20)) return false;
+      if (filterCapacity === '20+ People' && cap < 20) return false;
+    }
+    
+    // 4. Amenities Filter
+    if (filterAmenities.length > 0) {
+      const roomAmenityIcons = room.roomAmenities?.map(ra => ra.amenity?.icon) || [];
+      const hasAll = filterAmenities.every(icon => roomAmenityIcons.includes(icon));
+      if (!hasAll) return false;
+    }
+    
+    return true;
+  });
 
   useEffect(() => {
     loadData();
@@ -160,62 +200,22 @@ export default function RoomExplorerPage() {
   return (
     <div className="bg-surface font-body text-on-surface min-h-screen">
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 border-r-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col py-8 px-4 z-50">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span>Dashboard</span>
-          </button>
-          {/* Active Status */}
-          <button onClick={() => navigate('/rooms')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-900 dark:text-white font-bold border-r-4 border-slate-900 dark:border-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">meeting_room</span>
-            <span>Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span>Calendar</span>
-          </button>
-          <button onClick={() => navigate('/bookings')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">bookmark_check</span>
-            <span>My Bookings</span>
-          </button>
-          {user?.role === 'admin' && (
-            <>
-              <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-                <span className="material-symbols-outlined">admin_panel_settings</span>
-                <span>Admin Management</span>
-              </button>
-              <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-                <span className="material-symbols-outlined">bar_chart</span>
-                <span>Reports</span>
-              </button>
-            </>
-          )}
-        </nav>
-        <div className="mt-auto space-y-2 border-t border-slate-100 pt-6">
-          <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
-          </button>
-          <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error/10 text-left">
-            <span className="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content Wrapper */}
-      <main className="ml-64 min-h-screen">
+      <main className="ml-0 lg:ml-64 min-h-screen">
         {/* TopNavBar */}
-        <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8 z-40">
+        <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 z-40">
           <div className="flex items-center flex-1 max-w-xl">
             <div className="relative w-full group">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
-              <input className="w-full bg-surface-container border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-0 focus:bg-surface-container-lowest focus:shadow-lg transition-all font-body outline-none" placeholder="Search rooms, floors, or equipment..." type="text" />
+              <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-surface-container border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-0 focus:bg-surface-container-lowest focus:shadow-lg transition-all font-body outline-none" 
+                placeholder="Search rooms, floors, or equipment..." 
+                type="text" 
+              />
             </div>
           </div>
           <TopRightNav />
@@ -242,38 +242,57 @@ export default function RoomExplorerPage() {
             <div className="flex flex-wrap items-center gap-4 bg-surface-container-low p-6 rounded-xl">
               <div className="flex-1 min-w-[300px]">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Location / Floor</label>
-                <select className="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-sm focus:ring-0 shadow-sm font-body outline-none">
-                  <option>All Floors</option>
-                  <option>Floor 1</option>
-                  <option>Floor 2</option>
-                  <option>Floor 3</option>
+                <select 
+                  value={filterFloor}
+                  onChange={(e) => setFilterFloor(e.target.value)}
+                  className="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-sm focus:ring-0 shadow-sm font-body outline-none"
+                >
+                  {['All Floors', ...new Set(rooms.map(r => r.floor).filter(Boolean))].map(floor => (
+                    <option key={floor} value={floor}>{floor}</option>
+                  ))}
                 </select>
               </div>
               <div className="w-48">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Capacity</label>
-                <select className="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-sm focus:ring-0 shadow-sm font-body outline-none">
-                  <option>Any Capacity</option>
-                  <option>1-4 People</option>
-                  <option>5-10 People</option>
-                  <option>10-20 People</option>
-                  <option>20+ People</option>
+                <select 
+                  value={filterCapacity}
+                  onChange={(e) => setFilterCapacity(e.target.value)}
+                  className="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-sm focus:ring-0 shadow-sm font-body outline-none"
+                >
+                  <option value="Any Capacity">Any Capacity</option>
+                  <option value="1-4 People">1-4 People</option>
+                  <option value="5-10 People">5-10 People</option>
+                  <option value="10-20 People">10-20 People</option>
+                  <option value="20+ People">20+ People</option>
                 </select>
               </div>
               <div className="flex-1">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Amenities</label>
                 <div className="flex gap-2">
-                  <button className="bg-surface-container-lowest text-on-surface-variant p-3 rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm">
-                    <span className="material-symbols-outlined">tv</span>
-                  </button>
-                  <button className="bg-surface-container-lowest text-on-surface-variant p-3 rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm">
-                    <span className="material-symbols-outlined">videocam</span>
-                  </button>
-                  <button className="bg-surface-container-lowest text-on-surface-variant p-3 rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm">
-                    <span className="material-symbols-outlined">ac_unit</span>
-                  </button>
-                  <button className="bg-surface-container-lowest text-on-surface-variant p-3 rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm">
-                    <span className="material-symbols-outlined">wifi</span>
-                  </button>
+                  {[
+                    { icon: 'tv', label: 'TV' },
+                    { icon: 'videocam', label: 'Video Camera' },
+                    { icon: 'ac_unit', label: 'AC' },
+                    { icon: 'wifi', label: 'WiFi' }
+                  ].map((amenity) => {
+                    const isActive = filterAmenities.includes(amenity.icon);
+                    return (
+                      <button 
+                        key={amenity.icon}
+                        onClick={() => {
+                          if (isActive) {
+                            setFilterAmenities(prev => prev.filter(a => a !== amenity.icon));
+                          } else {
+                            setFilterAmenities(prev => [...prev, amenity.icon]);
+                          }
+                        }}
+                        className={`${isActive ? 'bg-primary text-white' : 'bg-surface-container-lowest text-on-surface-variant'} p-3 rounded-lg hover:bg-primary/90 hover:text-white transition-all shadow-sm`}
+                        title={amenity.label}
+                      >
+                        <span className="material-symbols-outlined">{amenity.icon}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -286,19 +305,19 @@ export default function RoomExplorerPage() {
                  <div key={i} className="bg-surface-container-highest rounded-xl h-96 animate-pulse"></div>
                ))}
              </div>
-          ) : rooms.length === 0 ? (
+          ) : filteredRooms.length === 0 ? (
              <div className="bg-surface-container-lowest p-12 text-center rounded-xl border border-dashed border-slate-200">
                <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">domain_disabled</span>
                <h3 className="text-xl font-bold text-slate-700">No Rooms Found</h3>
-               <p className="text-slate-500 mt-2">There are currently no rooms available in the system.</p>
+               <p className="text-slate-500 mt-2">There are currently no rooms available matching your filters.</p>
              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {rooms.map((room) => (
+              {filteredRooms.map((room) => (
                 <div key={room.id} className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,27,60,0.06)] group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all duration-500 flex flex-col">
                   <div className="relative h-64 overflow-hidden cursor-pointer bg-slate-100" onClick={() => navigate(`/rooms/${room.id}`)}>
                     {room.images && room.images.length > 0 ? (
-                       <img alt={room.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={`http://localhost:3001/${room.images[0].filePath.replace(/\\/g, '/')}`} />
+                       <img alt={room.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={`${API_BASE}/${room.images[0].filePath.replace(/\\/g, '/')}`} />
                     ) : (
                        <div className="w-full h-full flex items-center justify-center text-slate-300">
                          <span className="material-symbols-outlined text-6xl">meeting_room</span>

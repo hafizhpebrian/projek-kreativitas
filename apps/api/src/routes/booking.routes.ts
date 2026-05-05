@@ -27,9 +27,11 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 });
 
 // POST /api/bookings
-const createSchema = z.object({ roomId: z.string().uuid(), title: z.string().min(1), date: z.string(), startTime: z.string(), endTime: z.string(), attendees: z.number().int().positive(), notes: z.string().optional(), isPrivate: z.boolean().optional(), paymentMethod: z.string().optional() });
+const createSchema = z.object({ roomId: z.string().uuid(), title: z.string().min(1), date: z.string(), startTime: z.string(), endTime: z.string(), attendees: z.number().int().positive(), notes: z.string().optional(), isPrivate: z.boolean().optional(), paymentMethod: z.string().optional(), onBehalfOf: z.string().optional() });
 router.post("/", requireAuth, validate({ body: createSchema }), async (req, res, next) => {
-  try { res.status(201).json(await bookingService.create({ ...req.body, userId: req.user!.id })); } catch (e: any) {
+  try {
+    res.status(201).json(await bookingService.create({ ...req.body, userId: req.user!.id }));
+  } catch (e: any) {
     if (e.message?.includes("conflict") || e.message?.includes("capacity") || e.message?.includes("time")) { res.status(409).json({ error: e.message }); return; }
     next(e);
   }

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import TopRightNav from '../components/TopRightNav';
 import { fetchApi } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
+import Sidebar from '../components/Sidebar';
 
 export default function ReportsPage() {
   const navigate = useNavigate();
@@ -96,31 +97,11 @@ export default function ReportsPage() {
   return (
     <div className="bg-surface text-on-surface min-h-screen">
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl z-50 flex flex-col py-8 px-4 space-y-2 shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-slate-50 font-headline">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1 font-body">
-          {navItems.map(item => (
-            <button key={item.path} onClick={() => !item.active && navigate(item.path)}
-              className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${item.active ? 'text-slate-900 dark:text-white font-semibold border-r-4 border-slate-900 dark:border-slate-50 bg-slate-200/50 dark:bg-slate-800/50' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30'}`}>
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="pt-6 mt-auto border-t border-slate-100">
-          <button onClick={handleLogout} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error-container/20">
-            <span className="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* TopNavBar */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md">
-        <div className="flex items-center justify-between px-8 w-full h-full">
+      <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 z-40 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md">
+        <div className="flex items-center justify-between pl-16 pr-4 lg:px-8 w-full h-full">
           <div className="flex items-center flex-1">
             <h2 className="font-headline tracking-tight font-bold text-slate-900 dark:text-slate-50">Reports & Analytics</h2>
           </div>
@@ -129,7 +110,7 @@ export default function ReportsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="ml-64 pt-24 pb-12 px-10 min-h-screen">
+      <main className="ml-0 lg:ml-64 pt-24 pb-12 px-10 min-h-screen">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>

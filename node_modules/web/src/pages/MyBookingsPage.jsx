@@ -4,20 +4,27 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchApi } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function MyBookingsPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('upcoming'); // 'upcoming', 'completed', 'cancelled'
+  const [filter, setFilter] = useState('upcoming');
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     async function loadBookings() {
       try {
         setLoading(true);
-        // Assuming we just fetch all and filter client side for now
-        // Or if backend supports status filter: /bookings/my?status=confirmed
+        // Admin sees ALL bookings from all users to manage/verify them
+        // Regular users only see their own bookings
         const endpoint = user?.role === 'admin' ? '/bookings' : '/bookings/my';
         const res = await fetchApi(endpoint);
         if (res.ok) {
@@ -46,72 +53,45 @@ export default function MyBookingsPage() {
         body: JSON.stringify({ reason: 'Action triggered via dashboard' })
       });
       if (res.ok) {
+        showToast('Action completed successfully!', 'success');
         // Refresh bookings
         const endpoint = user?.role === 'admin' ? '/bookings' : '/bookings/my';
         const dataRes = await fetchApi(endpoint);
         if (dataRes.ok) setBookings(await dataRes.json());
       } else {
         const errData = await res.json();
-        alert(`Action failed: ${errData.error || 'Unknown error'}`);
+        showToast(`Action failed: ${errData.error || 'Unknown error'}`, 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Network error');
+      showToast('Network error. Please try again.', 'error');
     }
   };
 
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-20 right-8 z-[100] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 transition-all animate-[slideIn_0.3s_ease-out]
+          ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 
+            toast.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 
+            'bg-blue-50 text-blue-800 border border-blue-200'}`}
+          style={{ animation: 'slideIn 0.3s ease-out' }}
+        >
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+            {toast.type === 'success' ? 'check_circle' : toast.type === 'error' ? 'error' : 'info'}
+          </span>
+          <span className="font-semibold text-sm max-w-xs">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 opacity-50 hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+      )}
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] dark:shadow-none flex flex-col py-8 px-4 space-y-2 z-50">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors duration-300">
-            <span className="material-symbols-outlined mr-3">dashboard</span>
-            <span>Dashboard</span>
-          </button>
-          <button onClick={() => navigate('/rooms')} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors duration-300">
-            <span className="material-symbols-outlined mr-3">meeting_room</span>
-            <span>Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors duration-300">
-            <span className="material-symbols-outlined mr-3">calendar_month</span>
-            <span>Calendar</span>
-          </button>
-          <button className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-900 dark:text-white font-semibold border-r-4 border-slate-900 dark:border-slate-50 bg-slate-200/50 dark:bg-slate-800/50 scale-95 duration-200 ease-in-out">
-            <span className="material-symbols-outlined mr-3">event_available</span>
-            <span>My Bookings</span>
-          </button>
-          {user?.role === 'admin' && (
-            <>
-              <button onClick={() => navigate('/admin')} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors duration-300">
-                <span className="material-symbols-outlined mr-3">admin_panel_settings</span>
-                <span>Admin Management</span>
-              </button>
-              <button onClick={() => navigate('/reports')} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors duration-300">
-                <span className="material-symbols-outlined mr-3">bar_chart</span>
-                <span>Reports</span>
-              </button>
-            </>
-          )}
-        </nav>
-        <div className="pt-8 mt-auto border-t border-slate-200/20">
-          <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 transition-all">
-            <span className="material-symbols-outlined mr-3">settings</span>
-            <span>Settings</span>
-          </button>
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full text-left flex items-center px-4 py-3 rounded-xl text-error font-medium hover:bg-error-container/20 transition-all">
-            <span className="material-symbols-outlined mr-3">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* TopNavBar */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8 z-40">
+      <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 z-40">
         <div className="flex items-center flex-1 max-w-xl">
           <div className="relative w-full group">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
@@ -122,7 +102,7 @@ export default function MyBookingsPage() {
       </header>
 
       {/* Main Content Canvas */}
-      <main className="ml-64 pt-24 pb-12 px-12 min-h-screen">
+      <main className="ml-0 lg:ml-64 pt-24 pb-12 px-4 md:px-12 min-h-screen">
         {/* Header & Editorial Title */}
         <section className="mb-12">
           <h2 className="text-5xl font-headline font-bold tracking-tight text-primary mb-4 leading-none">My Bookings</h2>
@@ -194,9 +174,20 @@ export default function MyBookingsPage() {
                     <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors cursor-pointer">more_vert</span>
                   </div>
                   <h3 className="text-2xl font-headline font-bold text-primary mb-2 tracking-tight">{booking.title}</h3>
-                  {user?.role === 'admin' && booking.user && (
-                    <div className="text-xs text-slate-500 font-bold mb-4 bg-slate-100 inline-block px-2 py-1 rounded">
-                      Booked by: {booking.user.name}
+                  {(booking.user || booking.onBehalfOf) && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {booking.user && (
+                        <div className="text-xs font-bold inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
+                          <span className="material-symbols-outlined text-sm text-slate-500">person</span>
+                          <span className="text-slate-600">{booking.user.name}</span>
+                        </div>
+                      )}
+                      {booking.onBehalfOf && (
+                        <div className="text-xs font-bold inline-flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-lg">
+                          <span className="material-symbols-outlined text-sm text-blue-500">badge</span>
+                          <span className="text-blue-600">Atas Nama: {booking.onBehalfOf}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="space-y-3 mb-8">
@@ -232,23 +223,18 @@ export default function MyBookingsPage() {
                 </div>
                 {['pending', 'reserved', 'confirmed', 'waiting_checkout', 'overdue', 'awaiting_verification'].includes(booking.status) && (
                   <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-slate-50">
-                    {/* User Actions */}
                     {booking.status === 'pending' && (
                       <button onClick={() => handleAction(booking.id, 'pay')} className="bg-primary text-white font-semibold text-sm transition-all hover:bg-primary/90 px-6 py-2 rounded-lg shadow-md">Pay Now</button>
                     )}
                     {(booking.status === 'confirmed' || booking.status === 'waiting_checkout' || booking.status === 'overdue') && (
                       <button onClick={() => handleAction(booking.id, 'user-checkout')} className="bg-primary text-white font-semibold text-sm transition-all hover:bg-primary/90 px-6 py-2 rounded-lg shadow-md">Selesai & Keluar</button>
                     )}
-
-                    {/* Admin Actions */}
                     {user?.role === 'admin' && booking.status === 'reserved' && (
                       <button onClick={() => handleAction(booking.id, 'checkin')} className="bg-tertiary-fixed text-on-tertiary-container font-semibold text-sm transition-all hover:brightness-95 px-6 py-2 rounded-lg shadow-md">Check-in</button>
                     )}
                     {user?.role === 'admin' && booking.status === 'awaiting_verification' && (
                       <button onClick={() => handleAction(booking.id, 'approve-checkout')} className="bg-tertiary-fixed text-on-tertiary-container font-semibold text-sm transition-all hover:brightness-95 px-6 py-2 rounded-lg shadow-md">Approve Checkout</button>
                     )}
-
-                    {/* Cancel Action */}
                     <button 
                       onClick={() => handleAction(booking.id, 'cancel')}
                       className="text-error ml-auto border border-error/20 hover:bg-error-container/10 font-semibold text-sm px-6 py-2 rounded-lg transition-all"

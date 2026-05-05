@@ -157,6 +157,7 @@ export const booking = pgTable("booking", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
   penaltyAmount: decimal("penalty_amount", { precision: 10, scale: 2 }).default("0.00"),
   isPrivate: boolean("is_private").notNull().default(false),
+  onBehalfOf: text("on_behalf_of"),
   cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

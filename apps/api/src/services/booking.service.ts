@@ -16,6 +16,7 @@ export const bookingService = {
         room: {
           with: { images: { limit: 1 } },
         },
+        user: true,
       },
       orderBy: [asc(booking.date), asc(booking.startTime)],
     });
@@ -44,6 +45,7 @@ export const bookingService = {
     notes?: string;
     isPrivate?: boolean;
     paymentMethod?: string;
+    onBehalfOf?: string;
   }) {
     // Validate times
     if (data.startTime >= data.endTime) {
@@ -109,6 +111,7 @@ export const bookingService = {
         attendees: data.attendees,
         notes: data.notes,
         isPrivate: data.isPrivate || false,
+        onBehalfOf: data.onBehalfOf || null,
         paymentMethod,
         totalPrice,
         status,
@@ -268,7 +271,9 @@ export const bookingService = {
     return db.query.booking.findMany({
       where: conditions.length > 0 ? and(...conditions) : undefined,
       with: {
-        room: true,
+        room: {
+          with: { images: { limit: 1 } },
+        },
         user: true,
       },
       orderBy: [desc(booking.createdAt)],

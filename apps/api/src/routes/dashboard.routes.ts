@@ -10,7 +10,7 @@ router.get("/stats", requireAuth, async (_req, res, next) => {
 });
 
 router.get("/upcoming", requireAuth, async (req, res, next) => {
-  try { res.json(await dashboardService.getUpcoming(req.user!.id, Number(req.query.limit) || 5)); } catch (e) { next(e); }
+  try { res.json(await dashboardService.getUpcoming(req.user!.id, req.user!.role, Number(req.query.limit) || 5)); } catch (e) { next(e); }
 });
 
 router.get("/popular-rooms", requireAuth, async (req, res, next) => {

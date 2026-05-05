@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchApi } from '../lib/api';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function AdminManagementPage() {
   const navigate = useNavigate();
@@ -41,55 +42,11 @@ export default function AdminManagementPage() {
   return (
     <div className="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen">
       {/* SideNavBar Anchor */}
-      <aside className="h-screen w-64 fixed left-0 top-0 border-r-0 bg-white/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col py-8 px-4 z-50">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-slate-100/50">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="font-headline">Dashboard</span>
-          </button>
-          <button onClick={() => navigate('/rooms')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-slate-100/50">
-            <span className="material-symbols-outlined">meeting_room</span>
-            <span className="font-headline">Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-slate-100/50">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span className="font-headline">Calendar</span>
-          </button>
-          <button onClick={() => navigate('/bookings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-slate-100/50">
-            <span className="material-symbols-outlined">bookmark_check</span>
-            <span className="font-headline">My Bookings</span>
-          </button>
-
-          {/* Active State: Admin Management */}
-          <button className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-900 font-bold border-r-4 border-slate-900 bg-slate-100/30">
-            <span className="material-symbols-outlined">admin_panel_settings</span>
-            <span className="font-headline">Admin Management</span>
-          </button>
-
-          <button onClick={() => navigate('/reports')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-slate-100/50">
-            <span className="material-symbols-outlined">bar_chart</span>
-            <span className="font-headline">Reports</span>
-          </button>
-          <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 font-medium hover:bg-slate-100/50">
-            <span className="material-symbols-outlined">settings</span>
-            <span className="font-headline">Settings</span>
-          </button>
-        </nav>
-        <div className="mt-auto border-t border-slate-100 pt-6">
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error-container/20">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="font-headline">Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* TopNavBar Anchor */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md">
-        <div className="flex items-center justify-between px-8 w-full h-full">
+      <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 z-40 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md">
+        <div className="flex items-center justify-between pl-16 pr-4 lg:px-8 w-full h-full">
           <div className="flex items-center flex-1">
             <div className="relative w-full max-w-md">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
@@ -101,7 +58,7 @@ export default function AdminManagementPage() {
       </header>
 
       {/* Main Content Canvas */}
-      <main className="ml-64 pt-24 p-8 min-h-screen bg-surface">
+      <main className="ml-0 lg:ml-64 pt-24 p-4 md:p-8 min-h-screen bg-surface">
         {/* Header Section */}
         <div className="mb-10 flex justify-between items-end">
           <div>

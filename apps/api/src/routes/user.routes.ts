@@ -1,8 +1,14 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAdmin } from "../middleware/admin.middleware.js";
 import { userService } from "../services/user.service.js";
 
 const router = Router();
+
+// GET /api/users — Admin only: list all users
+router.get("/", requireAuth, requireAdmin, async (req, res, next) => {
+  try { res.json(await userService.getAllUsers()); } catch (e) { next(e); }
+});
 
 router.get("/me", requireAuth, async (req, res, next) => {
   try { res.json(await userService.getProfile(req.user!.id)); } catch (e) { next(e); }

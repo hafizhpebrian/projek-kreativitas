@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchApi } from '../lib/api';
+import { fetchApi, API_BASE } from '../lib/api';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -90,55 +91,10 @@ export default function DashboardPage() {
   return (
     <div className="bg-surface text-on-surface min-h-screen overflow-y-auto">
       {/* SideNavBar Anchor */}
-      <aside className="h-screen w-64 fixed left-0 top-0 border-r-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col py-8 px-4 z-50">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="space-y-2 flex-grow">
-          <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-900 dark:text-white font-bold border-r-4 border-slate-900 dark:border-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="text-sm">Dashboard</span>
-          </button>
-          <button onClick={() => navigate('/rooms')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">meeting_room</span>
-            <span className="text-sm">Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span className="text-sm">Calendar</span>
-          </button>
-          <button onClick={() => navigate('/bookings')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-            <span className="material-symbols-outlined">bookmark_check</span>
-            <span className="text-sm">My Bookings</span>
-          </button>
-          {user?.role === 'admin' && (
-            <>
-              <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-                <span className="material-symbols-outlined">admin_panel_settings</span>
-                <span className="text-sm">Admin Management</span>
-              </button>
-              <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-left">
-                <span className="material-symbols-outlined">bar_chart</span>
-                <span className="text-sm">Reports</span>
-              </button>
-            </>
-          )}
-        </nav>
-        <div className="mt-auto space-y-2 border-t border-slate-100 pt-6">
-          <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-            <span className="material-symbols-outlined">settings</span>
-            <span className="text-sm">Settings</span>
-          </button>
-          <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-error font-medium hover:bg-error/10 text-left">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-sm">Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* TopNavBar Anchor */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8 z-40 transition-shadow focus-within:shadow-lg">
+      <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 z-40 transition-shadow focus-within:shadow-lg">
         <div className="flex items-center bg-surface-container rounded-full px-4 py-1.5 w-96">
           <span className="material-symbols-outlined text-on-surface-variant text-lg">search</span>
           <input className="bg-transparent border-none focus:ring-0 text-sm w-full font-['Inter'] outline-none" placeholder="Search for rooms or meetings..." type="text" />
@@ -147,7 +103,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content Canvas */}
-      <main className="ml-64 pt-16 min-h-screen bg-surface">
+      <main className="ml-0 lg:ml-64 pt-16 min-h-screen bg-surface">
         <div className="max-w-7xl mx-auto px-8 py-10">
           {/* Welcome Header */}
           <div className="mb-12">
@@ -180,7 +136,7 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-3xl">event_available</span>
                 </div>
                 <div>
-                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Available Now</p>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Active Rooms</p>
                   <h3 className="text-3xl font-extrabold text-primary">{stats.availableNow || 0}</h3>
                 </div>
               </div>
@@ -208,7 +164,7 @@ export default function DashboardPage() {
 
               {/* Booking Cards */}
               <div className="space-y-4">
-                {loading ? (
+               {loading ? (
                    <p className="text-slate-500 animate-pulse">Loading upcoming bookings...</p>
                 ) : upcoming.length === 0 ? (
                    <div className="bg-surface-container-lowest p-8 rounded-xl border border-dashed border-slate-200 text-center">
@@ -217,24 +173,60 @@ export default function DashboardPage() {
                      <button onClick={() => navigate('/rooms')} className="mt-4 text-primary font-bold hover:underline">Book a room</button>
                    </div>
                 ) : upcoming.map((booking) => {
-                  const { month, day } = getDayAndMonth(booking.booking_date);
+                  const roomImage = booking.room?.images?.[0]?.filePath;
+                  const dateObj = booking.date ? new Date(booking.date) : null;
+                  const dateStr = dateObj ? dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                  const startStr = booking.startTime ? booking.startTime.substring(0, 5) : '';
+                  const endStr = booking.endTime ? booking.endTime.substring(0, 5) : '';
+
+                  const statusColors = {
+                    confirmed: 'bg-tertiary-container text-tertiary-fixed',
+                    pending: 'bg-amber-100 text-amber-700',
+                    reserved: 'bg-blue-100 text-blue-700',
+                    awaiting_verification: 'bg-purple-100 text-purple-700',
+                    waiting_checkout: 'bg-orange-100 text-orange-700',
+                    overdue: 'bg-orange-100 text-orange-700',
+                    cancelled: 'bg-red-100 text-red-700',
+                    completed: 'bg-slate-100 text-slate-500',
+                  };
+
                   return (
-                    <div key={booking.id} className="bg-surface-container-lowest p-5 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex items-center justify-between group hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all">
-                      <div className="flex items-center gap-5">
-                        <div className="bg-surface-container w-12 h-12 rounded-lg flex flex-col items-center justify-center">
-                          <span className="text-[10px] font-bold uppercase text-on-surface-variant">{month}</span>
-                          <span className="text-lg font-extrabold text-primary">{day}</span>
-                        </div>
-                        <div>
-                          <h5 className="font-bold text-primary">{booking.title}</h5>
-                          <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
-                            <span className="material-symbols-outlined text-[14px]">meeting_room</span> {booking.room?.name || 'Unknown Room'} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
-                          </p>
-                        </div>
+                    <div key={booking.id} className="bg-surface-container-lowest rounded-xl shadow-[0_10px_20px_rgba(0,27,60,0.05)] hover:shadow-[0_15px_30px_rgba(0,27,60,0.1)] transition-all overflow-hidden flex group">
+                      {/* Room Image */}
+                      <div className="w-24 flex-shrink-0 relative overflow-hidden">
+                        {roomImage ? (
+                          <img
+                            alt={booking.room?.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            src={`${API_BASE}/${roomImage.replace(/\\/g, '/')}`}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-surface-container flex items-center justify-center">
+                            <span className="material-symbols-outlined text-2xl text-slate-300">meeting_room</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full tracking-wider uppercase ${booking.status === 'confirmed' ? 'bg-tertiary-container text-tertiary-fixed' : 'bg-surface-container-highest text-slate-500'}`}>{booking.status}</span>
-                        <button className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">more_vert</button>
+
+                      {/* Booking Info */}
+                      <div className="flex-1 px-4 py-3 flex items-center justify-between min-w-0 gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h5 className="font-bold text-sm text-primary font-headline tracking-tight truncate">{booking.title}</h5>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wider uppercase flex-shrink-0 ${statusColors[booking.status] || 'bg-slate-100 text-slate-500'}`}>{booking.status?.replace('_', ' ')}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
+                            {booking.user && (
+                              <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">person</span>{booking.user.name}</span>
+                            )}
+                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">meeting_room</span>{booking.room?.name || '—'}</span>
+                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">schedule</span>{startStr} — {endStr}</span>
+                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">calendar_today</span>{dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+                            {booking.totalPrice && (
+                              <span className="flex items-center gap-1 font-bold text-primary"><span className="material-symbols-outlined text-xs">payments</span>Rp{Number(booking.totalPrice).toLocaleString('id-ID')}</span>
+                            )}
+                          </div>
+                        </div>
+                        <button onClick={() => navigate('/bookings')} className="material-symbols-outlined text-lg text-slate-400 hover:text-primary transition-colors flex-shrink-0">chevron_right</button>
                       </div>
                     </div>
                   );
@@ -296,7 +288,7 @@ export default function DashboardPage() {
                 <div key={room.id} onClick={() => navigate(`/rooms/${room.id}`)} className="min-w-[280px] bg-surface-container-lowest rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden group cursor-pointer hover:shadow-[0_30px_60px_rgba(0,27,60,0.12)] transition-all flex flex-col">
                   <div className="h-32 overflow-hidden bg-slate-100 flex-shrink-0">
                     {room.images && room.images.length > 0 ? (
-                      <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={room.name} src={room.images[0].filePath.startsWith('http') ? room.images[0].filePath : `http://localhost:3001/${room.images[0].filePath}`} />
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={room.name} src={room.images[0].filePath.startsWith('http') ? room.images[0].filePath : `${API_BASE}/${room.images[0].filePath}`} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
                         <span className="material-symbols-outlined text-4xl">meeting_room</span>

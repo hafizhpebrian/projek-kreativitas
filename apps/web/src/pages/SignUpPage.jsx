@@ -6,9 +6,28 @@ export default function SignUpPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   return (
-    <main className="flex h-screen w-full">
+    <main className="flex h-screen w-full relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-slide-up
+          ${toast.type === 'success' ? 'bg-primary-container text-on-primary-container border border-primary/20' : 
+            toast.type === 'error' ? 'bg-error-container text-on-error-container border border-error/20' : 
+            'bg-surface-container-high text-on-surface border border-surface-variant'}`}
+        >
+          <span className="material-symbols-outlined">
+            {toast.type === 'success' ? 'check_circle' : toast.type === 'error' ? 'error' : 'info'}
+          </span>
+          <span className="font-bold text-sm">{toast.message}</span>
+        </div>
+      )}
       {/* Left Panel: Brand Experience */}
       <section className="hidden lg:flex w-1/2 relative flex-col justify-between p-16 bg-gradient-to-br from-primary-container to-[#1a365d] overflow-hidden">
         {/* Decorative Grain / Ambient Glow */}
@@ -72,10 +91,12 @@ export default function SignUpPage() {
               setLoading(false);
               
               if (result.success) {
-                alert('Account created successfully!');
-                navigate('/dashboard'); 
+                showToast('Account created successfully!', 'success');
+                setTimeout(() => {
+                  navigate('/dashboard'); 
+                }, 1500);
               } else {
-                alert(`Registration failed: ${result.error}`);
+                showToast(`Registration failed: ${result.error}`, 'error');
               }
             }
           }}>

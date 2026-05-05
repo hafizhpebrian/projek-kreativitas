@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchApi } from '../lib/api';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -12,6 +13,12 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('day');
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
   
   const getDateRange = () => {
     const curr = new Date(currentDate);
@@ -77,56 +84,27 @@ export default function CalendarPage() {
 
   return (
     <div className="bg-surface text-on-surface min-h-screen">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-20 right-8 z-[100] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3
+          ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 
+            'bg-red-50 text-red-800 border border-red-200'}`}
+          style={{ animation: 'slideIn 0.3s ease-out' }}
+        >
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+            {toast.type === 'success' ? 'check_circle' : 'error'}
+          </span>
+          <span className="font-semibold text-sm max-w-xs">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 opacity-50 hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+      )}
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 border-r-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl flex flex-col py-8 px-4 shadow-[0_20px_40px_rgba(0,27,60,0.06)] z-50">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-['Manrope']">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100/50 transition-all text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="text-sm">Dashboard</span>
-          </button>
-          <button onClick={() => navigate('/rooms')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100/50 transition-all text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">meeting_room</span>
-            <span className="text-sm">Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-900 dark:text-white font-bold border-r-4 border-slate-900 dark:border-white bg-slate-100/50 text-left">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_month</span>
-            <span className="text-sm">Calendar</span>
-          </button>
-          <button onClick={() => navigate('/bookings')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100/50 transition-all text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">bookmark_check</span>
-            <span className="text-sm">My Bookings</span>
-          </button>
-          {user?.role === 'admin' && (
-            <>
-              <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100/50 transition-all text-slate-500 dark:text-slate-400 font-medium text-left">
-                <span className="material-symbols-outlined">admin_panel_settings</span>
-                <span className="text-sm">Admin Management</span>
-              </button>
-              <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100/50 transition-all text-slate-500 dark:text-slate-400 font-medium text-left">
-                <span className="material-symbols-outlined">bar_chart</span>
-                <span className="text-sm">Reports</span>
-              </button>
-            </>
-          )}
-        </nav>
-        <div className="mt-auto space-y-2 border-t border-slate-100 pt-6">
-          <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100/50 transition-all text-slate-500 dark:text-slate-400 font-medium">
-            <span className="material-symbols-outlined">settings</span>
-            <span className="text-sm">Settings</span>
-          </button>
-          <button onClick={async () => { await logout(); navigate('/login'); }} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-error-container/20 transition-all text-error font-medium">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-sm">Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* TopNavBar */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8 z-40">
+      <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 z-40">
         <div className="flex items-center flex-1 max-w-xl">
           <div className="relative w-full group">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
@@ -137,7 +115,7 @@ export default function CalendarPage() {
       </header>
 
       {/* Main Content Canvas */}
-      <main className="ml-64 pt-16 min-h-screen">
+      <main className="ml-0 lg:ml-64 pt-16 min-h-screen">
         <div className="p-8 max-w-[1600px] mx-auto">
           {/* Calendar Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
@@ -351,14 +329,15 @@ export default function CalendarPage() {
                             const res = await fetchApi(`/bookings/${selectedEvent.id}/cancel`, { method: 'PATCH' });
                             if (res.ok) {
                               setSelectedEvent(null);
+                              showToast('Booking cancelled successfully.', 'success');
                               // Refresh page data
                               const reloadRes = await fetchApi(`/calendar?date=${currentDate}`);
                               if (reloadRes.ok) setTimeline(await reloadRes.json());
                             } else {
-                              alert("Failed to cancel booking.");
+                              showToast('Failed to cancel booking.', 'error');
                             }
                           } catch(e) {
-                            alert("Network error.");
+                            showToast('Network error.', 'error');
                           }
                         }
                       }} 

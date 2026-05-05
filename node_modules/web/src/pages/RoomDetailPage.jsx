@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchApi } from '../lib/api';
+import { fetchApi, API_BASE } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function RoomDetailPage() {
   const { user, logout } = useAuth();
@@ -17,6 +18,13 @@ export default function RoomDetailPage() {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Poll for date change every minute to auto-refresh Today's Schedule on day change
   useEffect(() => {
@@ -94,75 +102,73 @@ export default function RoomDetailPage() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
+        // Upload new images if selected
+        if (imageFiles.length > 0) {
+          // Delete all existing images to replace them
+          if (room?.images && room.images.length > 0) {
+            await Promise.all(
+              room.images.map(img => 
+                fetchApi(`/rooms/${id}/images/${img.id}`, { method: 'DELETE' })
+              )
+            );
+          }
+          
+          // Upload all selected images
+          for (let i = 0; i < imageFiles.length; i++) {
+            const formData = new FormData();
+            formData.append('image', imageFiles[i]);
+            formData.append('order', i.toString()); // preserve order
+            
+            const uploadRes = await fetchApi(`/rooms/${id}/images`, {
+              method: 'POST',
+              body: formData
+            });
+            
+            if (!uploadRes.ok) {
+              console.error(`Failed to upload image ${i+1}`);
+            }
+          }
+          
+          setImageFiles([]); // Reset after upload
+        }
+
         setIsEditModalOpen(false);
         loadRoom();
+        showToast('Room updated successfully!', 'success');
       } else {
-        alert('Failed to update room');
+        showToast('Failed to update room', 'error');
       }
     } catch (error) {
       console.error('Failed to update room', error);
-      alert('Error updating room');
+      showToast('Error updating room', 'error');
     }
   };
 
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen flex">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-20 right-8 z-[100] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3
+          ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 
+            'bg-red-50 text-red-800 border border-red-200'}`}
+          style={{ animation: 'slideIn 0.3s ease-out' }}
+        >
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+            {toast.type === 'success' ? 'check_circle' : 'error'}
+          </span>
+          <span className="font-semibold text-sm max-w-xs">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 opacity-50 hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+      )}
       {/* SideNavBar Shell */}
-      <aside className="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl flex flex-col py-8 px-4 space-y-2 z-50 shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
-        <div className="px-4 mb-10">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-slate-50 font-headline">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-1 font-label">The Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span>Dashboard</span>
-          </button>
-          <button onClick={() => navigate('/rooms')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-900 dark:text-white font-semibold border-r-4 border-slate-900 dark:border-slate-50 bg-slate-200/50 dark:bg-slate-800/50">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>meeting_room</span>
-            <span>Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span>Calendar</span>
-          </button>
-          <button onClick={() => navigate('/bookings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30">
-            <span className="material-symbols-outlined">event_available</span>
-            <span>My Bookings</span>
-          </button>
-          
-          {user?.role === 'admin' && (
-            <>
-              <div className="pt-6 pb-2 px-4">
-                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-label">Administration</p>
-              </div>
-              <button onClick={() => navigate('/admin')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30">
-                <span className="material-symbols-outlined">admin_panel_settings</span>
-                <span>Admin Management</span>
-              </button>
-              <button onClick={() => navigate('/reports')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30">
-                <span className="material-symbols-outlined">bar_chart</span>
-                <span>Reports</span>
-              </button>
-            </>
-          )}
-          <button onClick={() => navigate('/settings')} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
-          </button>
-        </nav>
-        <div className="mt-auto px-4">
-          <button onClick={() => { logout(); navigate('/login'); }} className="flex items-center gap-3 w-full px-4 py-3 text-slate-500 hover:text-error transition-colors font-medium">
-            <span className="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Wrapper */}
-      <div className="flex-1 ml-64 min-h-screen flex flex-col">
+      <div className="flex-1 ml-0 lg:ml-64 min-h-screen flex flex-col">
         {/* TopNavBar Shell */}
-        <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8">
+        <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 z-40 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8">
           <div className="flex items-center flex-1">
             <div className="relative w-96">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
@@ -248,7 +254,7 @@ export default function RoomDetailPage() {
                 <div className="grid grid-cols-4 grid-rows-2 gap-4 h-[500px]">
                   <div className="col-span-3 row-span-2 relative group overflow-hidden rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] bg-slate-100">
                     {room.images && room.images.length > 0 ? (
-                      <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`http://localhost:3001/${room.images[0].filePath.replace(/\\/g, '/')}`} alt={room.name} />
+                      <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`${API_BASE}/${room.images[0].filePath.replace(/\\/g, '/')}`} alt={room.name} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
                         <span className="material-symbols-outlined text-6xl">meeting_room</span>
@@ -258,7 +264,7 @@ export default function RoomDetailPage() {
                   </div>
                   <div className="col-span-1 row-span-1 relative group overflow-hidden rounded-xl shadow-sm bg-slate-100">
                     {room.images && room.images.length > 1 ? (
-                      <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`http://localhost:3001/${room.images[1].filePath.replace(/\\/g, '/')}`} alt={`${room.name} View 2`}/>
+                      <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`${API_BASE}/${room.images[1].filePath.replace(/\\/g, '/')}`} alt={`${room.name} View 2`}/>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-200">
                         <span className="material-symbols-outlined text-4xl">photo</span>
@@ -268,7 +274,7 @@ export default function RoomDetailPage() {
                   <div className="col-span-1 row-span-1 relative group overflow-hidden rounded-xl shadow-sm bg-slate-100">
                     {room.images && room.images.length > 2 ? (
                       <div className="w-full h-full relative cursor-pointer" onClick={() => setLightboxIndex(2)}>
-                        <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`http://localhost:3001/${room.images[2].filePath.replace(/\\/g, '/')}`} alt={`${room.name} View 3`}/>
+                        <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`${API_BASE}/${room.images[2].filePath.replace(/\\/g, '/')}`} alt={`${room.name} View 3`}/>
                         {room.images.length > 3 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center hover:bg-black/40 transition-colors">
                             <span className="text-white font-bold text-lg">+{room.images.length - 3} Photos</span>
@@ -424,7 +430,7 @@ export default function RoomDetailPage() {
             </button>
             
             <img 
-              src={`http://localhost:3001/${room.images[lightboxIndex].filePath.replace(/\\/g, '/')}`} 
+              src={`${API_BASE}/${room.images[lightboxIndex].filePath.replace(/\\/g, '/')}`} 
               alt="Gallery Preview" 
               className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
             />
@@ -444,7 +450,7 @@ export default function RoomDetailPage() {
                 onClick={() => setLightboxIndex(idx)}
                 className={`h-16 w-24 rounded-md overflow-hidden transition-all ${idx === lightboxIndex ? 'ring-2 ring-primary scale-105 opacity-100' : 'opacity-40 hover:opacity-100'}`}
               >
-                <img src={`http://localhost:3001/${img.filePath.replace(/\\/g, '/')}`} className="w-full h-full object-cover" />
+                <img src={`${API_BASE}/${img.filePath.replace(/\\/g, '/')}`} className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
@@ -539,6 +545,36 @@ export default function RoomDetailPage() {
                     onChange={(e) => setEditData({...editData, description: e.target.value})}
                     className="w-full bg-surface-container border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px]" 
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Room Images (Upload Multiple)</label>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap gap-4">
+                      {/* Show existing images if no new files selected */}
+                      {room?.images && room.images.length > 0 && imageFiles.length === 0 && (
+                        room.images.map((img, idx) => (
+                          <img key={img.id || idx} src={`${API_BASE}/${img.filePath.replace(/\\/g, '/')}`} alt={`Current ${idx+1}`} className="w-16 h-16 object-cover rounded-xl border border-surface-container-high" />
+                        ))
+                      )}
+                      
+                      {/* Show new selected image previews */}
+                      {imageFiles.length > 0 && (
+                        imageFiles.map((file, idx) => (
+                          <img key={idx} src={URL.createObjectURL(file)} alt={`Preview ${idx+1}`} className="w-16 h-16 object-cover rounded-xl border border-primary" />
+                        ))
+                      )}
+                    </div>
+                    
+                    <input 
+                      type="file" 
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => setImageFiles(Array.from(e.target.files))}
+                      className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                    />
+                    <p className="text-xs text-slate-400">Uploading new images will replace all existing images for this room.</p>
+                  </div>
                 </div>
               </form>
             </div>

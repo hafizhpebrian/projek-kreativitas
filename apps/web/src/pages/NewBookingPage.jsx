@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchApi } from '../lib/api';
+import { fetchApi, API_BASE } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function NewBookingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   
   const [rooms, setRooms] = useState([]);
@@ -23,7 +25,8 @@ export default function NewBookingPage() {
     endTime: '10:00',
     notes: '',
     isPrivate: false,
-    paymentMethod: 'online'
+    paymentMethod: 'online',
+    onBehalfOf: ''
   });
 
   useEffect(() => {
@@ -36,7 +39,13 @@ export default function NewBookingPage() {
           const roomList = Array.isArray(resData) ? resData : (resData.data || []);
           const activeRooms = roomList.filter(r => r.status === 'available' || r.status === 'active');
           setRooms(activeRooms);
-          if (activeRooms.length > 0) {
+          
+          // Use roomId from URL query param if present, otherwise default to first room
+          const urlRoomId = searchParams.get('roomId');
+          const targetRoom = urlRoomId && activeRooms.find(r => r.id === urlRoomId);
+          if (targetRoom) {
+            setFormData(prev => ({ ...prev, roomId: targetRoom.id }));
+          } else if (activeRooms.length > 0) {
             setFormData(prev => ({ ...prev, roomId: activeRooms[0].id }));
           }
         }
@@ -45,7 +54,7 @@ export default function NewBookingPage() {
       }
     }
     loadRooms();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!formData.roomId || !formData.date) return;
@@ -110,6 +119,9 @@ export default function NewBookingPage() {
         attendees: Number(formData.attendees)
       };
 
+      // Remove empty onBehalfOf
+      if (!payload.onBehalfOf) delete payload.onBehalfOf;
+
       if (selectedRoom && payload.attendees > selectedRoom.capacity) {
         setError(`Attendance exceeds maximum capacity of ${selectedRoom.capacity} for ${selectedRoom.name}.`);
         setLoading(false);
@@ -150,65 +162,12 @@ export default function NewBookingPage() {
   return (
     <div className="bg-surface text-on-surface flex min-h-screen font-body">
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 border-r-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col py-8 px-4 z-50">
-        <div className="mb-10 px-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center text-white">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>meeting_room</span>
-            </div>
-            <div>
-              <div className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-headline">SI-BOOK</div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-on-primary-container font-bold">Digital Concierge</div>
-            </div>
-          </div>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-xl text-left">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span>Dashboard</span>
-          </button>
-          <button onClick={() => navigate('/rooms')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-xl text-left">
-            <span className="material-symbols-outlined">meeting_room</span>
-            <span>Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-xl text-left">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span>Calendar</span>
-          </button>
-          {/* Active Navigation (My Bookings) */}
-          <button onClick={() => navigate('/bookings')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-900 dark:text-white font-bold border-r-4 border-slate-900 dark:border-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-l-xl text-left">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>bookmark_check</span>
-            <span>My Bookings</span>
-          </button>
-          {user?.role === 'admin' && (
-            <>
-              <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-xl text-left">
-                <span className="material-symbols-outlined">admin_panel_settings</span>
-                <span>Admin Management</span>
-              </button>
-              <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-xl text-left">
-                <span className="material-symbols-outlined">bar_chart</span>
-                <span>Reports</span>
-              </button>
-            </>
-          )}
-          <button onClick={() => navigate('/settings')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all rounded-xl text-left">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
-          </button>
-        </nav>
-        <div className="mt-auto px-4">
-          <button onClick={() => navigate('/login')} className="flex items-center gap-3 w-full px-4 py-3 text-slate-500 hover:text-error transition-colors font-medium text-left">
-            <span className="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Wrapper */}
-      <div className="flex-1 ml-64 min-h-screen flex flex-col">
+      <div className="flex-1 ml-0 lg:ml-64 min-h-screen flex flex-col">
         {/* TopNavBar */}
-        <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md z-40 flex items-center justify-between px-8 text-on-surface">
+        <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md z-40 flex items-center justify-between pl-16 pr-4 lg:px-8 text-on-surface">
           <div className="flex-1 max-w-md">
             <div className="relative group">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
@@ -248,6 +207,17 @@ export default function NewBookingPage() {
                   <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Meeting Title</label>
                   <input name="title" value={formData.title} onChange={handleChange} required className="w-full bg-surface-container border-none rounded-xl py-4 px-5 text-on-surface focus:ring-0 focus:bg-white focus:shadow-md transition-all placeholder:text-outline/50 outline-none text-sm" placeholder="e.g. Quarterly Strategic Planning" type="text"/>
                 </div>
+
+                {/* Atas Nama — Admin Only */}
+                {user?.role === 'admin' && (
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Atas Nama (On Behalf Of)</label>
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">person</span>
+                      <input name="onBehalfOf" value={formData.onBehalfOf} onChange={handleChange} className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-5 text-on-surface focus:ring-0 focus:bg-white focus:shadow-md transition-all placeholder:text-outline/50 outline-none text-sm" placeholder="e.g. Budi Santoso" type="text"/>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Room Selector */}
@@ -353,7 +323,7 @@ export default function NewBookingPage() {
               {selectedRoom ? (
                 <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,27,60,0.06)] overflow-hidden">
                   <div className="relative h-56 group">
-                    <img alt="Room Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={selectedRoom.images?.[0]?.filePath ? `http://localhost:3001/${selectedRoom.images[0].filePath.replace(/\\/g, '/')}` : "https://lh3.googleusercontent.com/aida-public/AB6AXuAtW-a4B8AWinhgNVhKGOI0rogdt8_IoVTi0cOVqJw-oyal9dMvJ_kth8TB428Q6WJ5powRx0cMW9q2GpJOnU91o3GEGua3kfrNLdwjplQAO7HCv57EKR7SIk30FPttM7lezn5sqLhrDd7Hw8PVmGDp4PV_6Hv5Aa6UpXVVQc6zZtBRk2u5Q0SLfMFd4KYc9idle8dfjGV58z5EvMCtf3M8qFzkLJPlW1_yppb4Ao9xItr2fb85O-Sox_yQ5UFiCmFrQ0poYbakPpA"}/>
+                    <img alt="Room Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={selectedRoom.images?.[0]?.filePath ? `${API_BASE}/${selectedRoom.images[0].filePath.replace(/\\/g, '/')}` : "https://lh3.googleusercontent.com/aida-public/AB6AXuAtW-a4B8AWinhgNVhKGOI0rogdt8_IoVTi0cOVqJw-oyal9dMvJ_kth8TB428Q6WJ5powRx0cMW9q2GpJOnU91o3GEGua3kfrNLdwjplQAO7HCv57EKR7SIk30FPttM7lezn5sqLhrDd7Hw8PVmGDp4PV_6Hv5Aa6UpXVVQc6zZtBRk2u5Q0SLfMFd4KYc9idle8dfjGV58z5EvMCtf3M8qFzkLJPlW1_yppb4Ao9xItr2fb85O-Sox_yQ5UFiCmFrQ0poYbakPpA"}/>
                     <div className="absolute top-4 right-4 bg-tertiary-container text-tertiary-fixed text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
                       {badgeStatus}
                     </div>

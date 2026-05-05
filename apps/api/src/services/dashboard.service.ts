@@ -13,7 +13,7 @@ export const dashboardService = {
     const [availableNow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(room)
-      .where(eq(room.status, "available"));
+      .where(eq(room.status, "active"));
 
     const [todayBookings] = await db
       .select({ count: sql<number>`count(*)` })
@@ -27,19 +27,26 @@ export const dashboardService = {
     };
   },
 
-  async getUpcoming(userId: string, limit = 5) {
+  async getUpcoming(userId: string, role: string = 'user', limit = 5) {
     const today = new Date().toISOString().split("T")[0];
 
+    const conditions = [
+      gte(booking.date, today)
+    ];
+
+    // Admin sees ALL upcoming bookings from all users
+    // Regular users only see their own
+    if (role !== 'admin') {
+      conditions.push(eq(booking.userId, userId));
+    }
+
     return db.query.booking.findMany({
-      where: and(
-        eq(booking.userId, userId),
-        eq(booking.status, "confirmed"),
-        gte(booking.date, today)
-      ),
+      where: and(...conditions),
       with: {
         room: {
           with: { images: { limit: 1 } },
         },
+        user: true,
       },
       orderBy: [asc(booking.date), asc(booking.startTime)],
       limit,

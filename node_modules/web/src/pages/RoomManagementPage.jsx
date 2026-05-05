@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import TopRightNav from '../components/TopRightNav';
+import Sidebar from '../components/Sidebar';
 
 export default function RoomManagementPage() {
   const navigate = useNavigate();
@@ -8,52 +9,10 @@ export default function RoomManagementPage() {
   return (
     <div className="bg-surface text-on-surface min-h-screen font-body">
       {/* SideNavBar */}
-      <aside className="h-screen w-64 fixed left-0 top-0 border-r-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col py-8 px-4 z-50">
-        <div className="mb-10 px-4">
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 dark:text-white font-headline">SI-BOOK</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-on-primary-container font-bold opacity-70">Digital Concierge</p>
-        </div>
-        <nav className="flex-1 space-y-1">
-          <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span>Dashboard</span>
-          </button>
-          {/* We keep Rooms active here as per the design, though it represents Room Management */}
-          <button onClick={() => navigate('/rooms')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-900 dark:text-white font-bold border-r-4 border-slate-900 dark:border-white bg-slate-100/50 text-left">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>meeting_room</span>
-            <span>Rooms</span>
-          </button>
-          <button onClick={() => navigate('/calendar')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span>Calendar</span>
-          </button>
-          <button onClick={() => navigate('/bookings')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">bookmark_check</span>
-            <span>My Bookings</span>
-          </button>
-          <button onClick={() => navigate('/admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">admin_panel_settings</span>
-            <span>Admin Management</span>
-          </button>
-          <button onClick={() => navigate('/reports')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">bar_chart</span>
-            <span>Reports</span>
-          </button>
-        </nav>
-        <div className="mt-auto pt-6 border-t border-slate-100/50 space-y-1">
-          <button onClick={() => navigate('/settings')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium text-left">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
-          </button>
-          <button onClick={() => navigate('/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-error font-medium text-left hover:bg-error-container/20">
-            <span className="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* TopNavBar */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8 z-40 transition-shadow focus-within:shadow-lg">
+      <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 z-40 transition-shadow focus-within:shadow-lg">
         <div className="flex items-center bg-surface-container rounded-lg px-3 py-1.5 w-96">
           <span className="material-symbols-outlined text-on-surface-variant text-sm mr-2">search</span>
           <input className="bg-transparent border-none focus:ring-0 text-sm w-full text-on-surface-variant placeholder-on-surface-variant/50 outline-none" placeholder="Search for bookings or rooms..." type="text"/>
@@ -62,7 +21,7 @@ export default function RoomManagementPage() {
       </header>
 
       {/* Main Content Canvas */}
-      <main className="ml-64 pt-16 min-h-screen">
+      <main className="ml-0 lg:ml-64 pt-16 min-h-screen">
         <div className="max-w-[1400px] mx-auto p-10 space-y-8">
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
