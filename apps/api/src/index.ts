@@ -76,35 +76,40 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   });
 });
 
-// Background Job for Bookings
-setInterval(async () => {
-  try {
-    const now = new Date();
-    // 1. Cancel expired pending bookings
-    await db.update(booking)
-      .set({ status: "cancelled", cancellationReason: "Payment expired", updatedAt: new Date() })
-      .where(and(eq(booking.status, "pending"), lt(booking.paymentExpiresAt, now)));
+// Background Job Middleware for Vercel
+let lastJobRun = 0;
+app.use((req, res, next) => {
+  const now = Date.now();
+  // Run max once per minute (60000ms)
+  if (now - lastJobRun > 60000) {
+    lastJobRun = now;
+    (async () => {
+      try {
+        const currentDate = new Date();
+        await db.update(booking)
+          .set({ status: "cancelled", cancellationReason: "Payment expired", updatedAt: new Date() })
+          .where(and(eq(booking.status, "pending"), lt(booking.paymentExpiresAt, currentDate)));
 
-    // 2. Mark confirmed bookings as overdue if they passed endTime
-    await db.execute(sql`
-      UPDATE booking 
-      SET status = 'overdue', penalty_amount = '0.00', updated_at = CURRENT_TIMESTAMP
-      WHERE status IN ('confirmed', 'waiting_checkout') 
-        AND (date + end_time) < CURRENT_TIMESTAMP
-    `);
+        await db.execute(sql`
+          UPDATE booking 
+          SET status = 'overdue', penalty_amount = '0.00', updated_at = CURRENT_TIMESTAMP
+          WHERE status IN ('confirmed', 'waiting_checkout') 
+            AND (date + end_time) < CURRENT_TIMESTAMP
+        `);
 
-    // 3. Calculate penalty (Rp125,000 every 15 minutes overdue)
-    // EPOCH / 900 = number of 15-minute blocks
-    await db.execute(sql`
-      UPDATE booking
-      SET penalty_amount = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - (date + end_time))) / 900) * 125000),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE status = 'overdue' AND (date + end_time) < CURRENT_TIMESTAMP
-    `);
-  } catch (error) {
-    console.error("Background job error:", error);
+        await db.execute(sql`
+          UPDATE booking
+          SET penalty_amount = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - (date + end_time))) / 900) * 125000),
+              updated_at = CURRENT_TIMESTAMP
+          WHERE status = 'overdue' AND (date + end_time) < CURRENT_TIMESTAMP
+        `);
+      } catch (error) {
+        console.error("Background job error:", error);
+      }
+    })();
   }
-}, 60000); // Run every minute
+  next();
+});
 
 app.listen(PORT, () => {
   console.log(`\n  🚀 SI-BOOK API running at http://localhost:${PORT}`);
