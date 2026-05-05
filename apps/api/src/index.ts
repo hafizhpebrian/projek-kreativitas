@@ -61,6 +61,15 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
 
+// Root route
+app.get("/", (_req, res) => {
+  res.json({ 
+    message: "SI-BOOK API is running", 
+    docs: "/api/health",
+    env: process.env.NODE_ENV 
+  });
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -111,9 +120,11 @@ app.use((req, res, next) => {
   next();
 });
 
-app.listen(PORT, () => {
-  console.log(`\n  🚀 SI-BOOK API running at http://localhost:${PORT}`);
-  console.log(`  📖 Health check: http://localhost:${PORT}/api/health\n`);
-});
+// Only listen if not on Vercel
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`\n  🚀 SI-BOOK API running at http://localhost:${PORT}`);
+  });
+}
 
 export default app;
