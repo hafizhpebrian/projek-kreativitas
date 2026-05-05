@@ -66,4 +66,10 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:5173"],
+  advanced: {
+    cookieOptions: {
+      sameSite: "none",
+      secure: true,
+    }
+  },
 });
