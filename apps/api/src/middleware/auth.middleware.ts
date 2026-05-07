@@ -39,8 +39,8 @@ export async function requireAuth(
       return;
     }
 
-    req.user = session.user as Express.Request["user"];
-    req.session = session.session as Express.Request["session"];
+    req.user = session.user as any as Express.Request["user"];
+    req.session = session.session as any as Express.Request["session"];
     next();
   } catch {
     res.status(401).json({ error: "Unauthorized — session validation failed" });
