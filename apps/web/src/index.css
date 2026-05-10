@@ -18,6 +18,49 @@
     display: inline-block;
     line-height: 1;
   }
+
+  /* Global Dark Mode Overrides for Semantic Colors */
+  html.dark .bg-surface, 
+  html.dark .bg-surface-bright { background-color: #0f172a !important; }
+  
+  html.dark .bg-surface-container-lowest, 
+  html.dark .bg-surface-container-low,
+  html.dark .bg-white { background-color: #1e293b !important; }
+  
+  html.dark .bg-surface-container, 
+  html.dark .bg-surface-container-high,
+  html.dark .bg-slate-50 { background-color: #334155 !important; }
+  
+  html.dark .bg-surface-container-highest { background-color: #475569 !important; }
+  
+  html.dark .text-on-surface, 
+  html.dark .text-slate-900,
+  html.dark .text-slate-800 { color: #f8fafc !important; }
+  
+  html.dark .text-on-surface-variant,
+  html.dark .text-slate-500,
+  html.dark .text-slate-600 { color: #cbd5e1 !important; }
+  
+  html.dark .text-outline, 
+  html.dark .text-outline-variant,
+  html.dark .text-slate-400 { color: #94a3b8 !important; }
+  
+  html.dark .border-outline-variant\/10, 
+  html.dark .border-outline-variant\/20, 
+  html.dark .border-outline-variant\/5,
+  html.dark .border-slate-200,
+  html.dark .border-surface-container-high { border-color: #334155 !important; }
+  
+  html.dark .text-primary { color: #93c5fd !important; }
+  html.dark .bg-primary-fixed { background-color: #1e3a8a !important; color: #dbeafe !important; }
+  html.dark .text-on-primary-fixed { color: #dbeafe !important; }
+  
+  html.dark .bg-secondary-container { background-color: #312e81 !important; color: #e0e7ff !important; }
+  html.dark .text-on-secondary-container { color: #e0e7ff !important; }
+  
+  html.dark .bg-slate-50\/50, 
+  html.dark .bg-white\/80 { background-color: rgba(15, 23, 42, 0.8) !important; }
+  html.dark .shadow-\[0_20px_40px_rgba\(0\,27\,60\,0\.06\)\] { box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important; }
 }
 
 @layer utilities {

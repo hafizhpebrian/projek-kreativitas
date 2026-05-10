@@ -40,10 +40,22 @@ export default function TopRightNav() {
 
   return (
     <div className="flex items-center gap-6 relative" ref={dropdownRef}>
+      {/* Theme Toggle */}
+      <button 
+        onClick={() => {
+          const isDark = document.documentElement.classList.toggle('dark');
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }}
+        className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        <span className="material-symbols-outlined dark:hidden">dark_mode</span>
+        <span className="material-symbols-outlined hidden dark:block">light_mode</span>
+      </button>
+
       {/* Notification Bell */}
       <button 
         onClick={() => setShowNotifications(!showNotifications)}
-        className="relative text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+        className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         <span className="material-symbols-outlined">notifications</span>
         {notifications.length > 0 && (

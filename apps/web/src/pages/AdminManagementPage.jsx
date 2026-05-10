@@ -17,19 +17,29 @@ export default function AdminManagementPage() {
     issues: 0
   });
   const [activities, setActivities] = useState([]);
+  const [trends, setTrends] = useState([]);
+  const [roomUtil, setRoomUtil] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
         setLoading(true);
-        const [statsRes, activityRes] = await Promise.all([
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Last 7 days
+        const qs = `?startDate=${startDate}&endDate=${endDate}`;
+
+        const [statsRes, activityRes, trendsRes, utilRes] = await Promise.all([
           fetchApi('/admin/stats'),
-          fetchApi('/admin/activity')
+          fetchApi('/admin/activity'),
+          fetchApi(`/reports/trends${qs}`),
+          fetchApi(`/reports/room-utilization${qs}`)
         ]);
         
         if (statsRes.ok) setStats(await statsRes.json());
         if (activityRes.ok) setActivities(await activityRes.json());
+        if (trendsRes.ok) setTrends(await trendsRes.json());
+        if (utilRes.ok) setRoomUtil(await utilRes.json());
       } catch (err) {
         console.error('Failed to load admin data:', err);
       } finally {
@@ -58,7 +68,7 @@ export default function AdminManagementPage() {
       </header>
 
       {/* Main Content Canvas */}
-      <main className="ml-0 lg:ml-64 pt-24 p-4 md:p-8 min-h-screen bg-surface">
+      <main className="ml-0 lg:ml-64 px-4 pb-4 pt-20 md:px-8 md:pb-8 md:pt-24 min-h-screen bg-surface">
         {/* Header Section */}
         <div className="mb-10 flex justify-between items-end">
           <div>
@@ -157,7 +167,7 @@ export default function AdminManagementPage() {
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed">Weekly</span>
               </div>
             </div>
-            {/* Mock Chart Visual */}
+            
             <div className="h-64 w-full relative flex items-end justify-between px-2">
               <div className="absolute inset-0 flex flex-col justify-between py-2 border-l border-b border-outline-variant/10">
                 <div className="w-full border-t border-outline-variant/5"></div>
@@ -165,19 +175,44 @@ export default function AdminManagementPage() {
                 <div className="w-full border-t border-outline-variant/5"></div>
                 <div className="w-full border-t border-outline-variant/5"></div>
               </div>
-              {/* Data points mock-up with SVG path */}
+              
               <svg className="absolute inset-0 w-full h-full px-2" preserveAspectRatio="none" viewBox="0 0 700 200">
-                <path d="M0,160 Q100,140 116,100 T232,80 T348,120 T464,40 T580,60 T700,20" fill="none" stroke="url(#gradient)" strokeLinecap="round" strokeWidth="4"></path>
                 <defs>
                   <linearGradient id="gradient" x1="0%" x2="100%" y1="0%" y2="0%">
                     <stop offset="0%" stopColor="#00091b"></stop>
                     <stop offset="100%" stopColor="#7089b3"></stop>
                   </linearGradient>
                 </defs>
+                {!loading && trends.length > 0 && (
+                  <path 
+                    d={(() => {
+                      const maxCount = Math.max(...trends.map(t => t.count), 1);
+                      if (trends.length === 1) return `M0,180 L350,${180 - (trends[0].count / maxCount) * 160} L700,180`;
+                      const points = trends.map((t, i) => {
+                        const x = (i / (trends.length - 1)) * 700;
+                        const y = 180 - (t.count / maxCount) * 160;
+                        return `${x},${y}`;
+                      });
+                      return `M${points.join(' L')}`;
+                    })()} 
+                    fill="none" stroke="url(#gradient)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"
+                  />
+                )}
+                {!loading && trends.length === 0 && (
+                  <path d="M0,180 L700,180" fill="none" stroke="url(#gradient)" strokeLinecap="round" strokeWidth="4" strokeDasharray="8 8" />
+                )}
               </svg>
-              {/* Day Labels */}
-              <div className="flex justify-between w-full mt-4 translate-y-8 px-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              
+              <div className="flex justify-between w-full mt-4 translate-y-8 px-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest z-10">
+                {!loading && trends.length > 0 ? (
+                  trends.map((t, i) => (
+                    <span key={i} className="text-center truncate max-w-[40px] block">
+                      {new Date(t.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                    </span>
+                  ))
+                ) : (
+                  <><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></>
+                )}
               </div>
             </div>
           </div>
@@ -187,44 +222,33 @@ export default function AdminManagementPage() {
             <h4 className="text-xl font-bold text-primary mb-1">Room Utilization</h4>
             <p className="text-sm text-on-surface-variant mb-8">Ranked by usage %</p>
             <div className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wide">
-                  <span>Boardroom A</span>
-                  <span className="text-primary">98%</span>
-                </div>
-                <div className="w-full bg-surface-container rounded-full h-3">
-                  <div className="bg-primary h-3 rounded-full w-[98%] shadow-sm"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wide">
-                  <span>Creative Loft</span>
-                  <span className="text-primary">82%</span>
-                </div>
-                <div className="w-full bg-surface-container rounded-full h-3">
-                  <div className="bg-secondary-container h-3 rounded-full w-[82%] shadow-sm"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wide">
-                  <span>The Vault</span>
-                  <span className="text-primary">65%</span>
-                </div>
-                <div className="w-full bg-surface-container rounded-full h-3">
-                  <div className="bg-outline-variant h-3 rounded-full w-[65%] shadow-sm"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wide">
-                  <span>Focus Pod 1</span>
-                  <span className="text-primary">45%</span>
-                </div>
-                <div className="w-full bg-surface-container rounded-full h-3">
-                  <div className="bg-surface-container-highest h-3 rounded-full w-[45%] shadow-sm"></div>
-                </div>
-              </div>
+              {loading ? (
+                <div className="text-center text-slate-500 py-4">Loading...</div>
+              ) : roomUtil.length === 0 ? (
+                <div className="text-center text-slate-500 py-4">No data available</div>
+              ) : (
+                roomUtil.slice(0, 4).map((room, idx) => {
+                  const colors = [
+                    'bg-primary', 
+                    'bg-secondary-container', 
+                    'bg-outline-variant', 
+                    'bg-surface-container-highest'
+                  ];
+                  return (
+                    <div key={room.roomId} className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold uppercase tracking-wide">
+                        <span className="truncate pr-4">{room.roomName}</span>
+                        <span className="text-primary">{room.utilization}%</span>
+                      </div>
+                      <div className="w-full bg-surface-container rounded-full h-3">
+                        <div className={`${colors[idx % colors.length]} h-3 rounded-full shadow-sm`} style={{ width: `${Math.max(room.utilization, 2)}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
-            <button className="w-full mt-8 py-3 text-xs font-bold uppercase tracking-widest text-primary border-t border-outline-variant/10 hover:text-on-primary-container transition-colors">
+            <button onClick={() => navigate('/reports')} className="w-full mt-8 py-3 text-xs font-bold uppercase tracking-widest text-primary border-t border-outline-variant/10 hover:text-on-primary-container transition-colors">
               View All Assets
             </button>
           </div>

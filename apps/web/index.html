@@ -6,8 +6,17 @@
     <title>Login | SI-BOOK Digital Concierge</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+    </script>
   </head>
-  <body class="bg-surface text-on-surface">
+  <body class="bg-surface text-on-surface dark:bg-slate-950 dark:text-slate-100">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
