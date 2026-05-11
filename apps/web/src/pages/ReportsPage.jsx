@@ -5,10 +5,12 @@ import TopRightNav from '../components/TopRightNav';
 import { fetchApi } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function ReportsPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [kpi, setKpi] = useState(null);
   const [trends, setTrends] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -114,8 +116,8 @@ export default function ReportsPage() {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>
-            <h2 className="text-4xl font-bold tracking-tight text-primary mb-2 font-headline">Laporan & Analitik</h2>
-            <p className="font-body text-on-surface-variant max-w-lg">Comprehensive overview of meeting room efficiency and resource utilization across the organization.</p>
+            <h2 className="text-4xl font-bold tracking-tight text-primary mb-2 font-headline">{t('reports.title')}</h2>
+            <p className="font-body text-on-surface-variant max-w-lg">{t('reports.subtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Date Range Picker */}
@@ -128,7 +130,7 @@ export default function ReportsPage() {
             </div>
             <button onClick={loadAllData} className="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95">
               <span className="material-symbols-outlined text-lg">refresh</span>
-              <span className="font-body">Refresh</span>
+              <span className="font-body">{t('reports.refresh')}</span>
             </button>
           </div>
         </div>
@@ -147,7 +149,7 @@ export default function ReportsPage() {
                     <span className="material-symbols-outlined text-primary">query_stats</span>
                   </div>
                 </div>
-                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">Utilization</p>
+                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">{t('reports.utilization')}</p>
                 <p className="text-3xl font-bold text-primary">{kpi?.utilization || 0}%</p>
               </div>
               <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col">
@@ -156,7 +158,7 @@ export default function ReportsPage() {
                     <span className="material-symbols-outlined text-secondary">schedule</span>
                   </div>
                 </div>
-                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">Avg Duration</p>
+                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">{t('reports.avgDuration')}</p>
                 <p className="text-3xl font-bold text-primary">{kpi?.avgDuration || 0}h</p>
               </div>
               <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col">
@@ -165,7 +167,7 @@ export default function ReportsPage() {
                     <span className="material-symbols-outlined text-on-tertiary-fixed-variant">calendar_month</span>
                   </div>
                 </div>
-                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">Total Bookings</p>
+                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">{t('reports.totalBookings')}</p>
                 <p className="text-3xl font-bold text-primary">{kpi?.totalBookings || 0}</p>
               </div>
               <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)] flex flex-col">
@@ -174,7 +176,7 @@ export default function ReportsPage() {
                     <span className="material-symbols-outlined text-on-surface">group</span>
                   </div>
                 </div>
-                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">Unique Users</p>
+                <p className="text-label-sm uppercase tracking-widest text-outline text-[10px] font-bold mb-1">{t('reports.uniqueUsers')}</p>
                 <p className="text-3xl font-bold text-primary">{kpi?.uniqueUsers || 0}</p>
               </div>
             </div>

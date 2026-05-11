@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { fetchApi, API_BASE } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
 import Sidebar from '../components/Sidebar';
 
 export default function RoomDetailPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -134,13 +136,13 @@ export default function RoomDetailPage() {
 
         setIsEditModalOpen(false);
         loadRoom();
-        showToast('Room updated successfully!', 'success');
+        showToast(t('roomDetail.updateSuccess'), 'success');
       } else {
-        showToast('Failed to update room', 'error');
+        showToast(t('roomDetail.updateFailed'), 'error');
       }
     } catch (error) {
       console.error('Failed to update room', error);
-      showToast('Error updating room', 'error');
+      showToast(t('roomDetail.updateError'), 'error');
     }
   };
 
@@ -172,7 +174,7 @@ export default function RoomDetailPage() {
           <div className="flex items-center flex-1">
             <div className="relative w-96">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-              <input className="w-full pl-10 pr-4 py-2 bg-surface-container rounded-lg border-none focus:ring-0 focus:bg-surface-container-lowest transition-all text-sm placeholder:text-slate-400 outline-none" placeholder="Search for rooms, people, or events..." type="text"/>
+              <input className="w-full pl-10 pr-4 py-2 bg-surface-container rounded-lg border-none focus:ring-0 focus:bg-surface-container-lowest transition-all text-sm placeholder:text-slate-400 outline-none" placeholder={t('roomDetail.searchPlaceholder')} type="text"/>
             </div>
           </div>
           <TopRightNav />
@@ -183,9 +185,9 @@ export default function RoomDetailPage() {
           {/* Breadcrumb & Title Section */}
           <div className="flex flex-col mb-10">
             <nav className="flex items-center gap-2 mb-4 text-[10px] uppercase tracking-widest text-slate-400 font-label">
-              <button onClick={() => navigate('/rooms')} className="hover:text-primary transition-colors">Rooms</button>
+              <button onClick={() => navigate('/rooms')} className="hover:text-primary transition-colors">{t('roomDetail.rooms')}</button>
               <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-              <span className="text-primary font-bold">Room Detail</span>
+              <span className="text-primary font-bold">{t('roomDetail.roomDetailTitle')}</span>
             </nav>
             {loading ? (
               <div className="animate-pulse">
@@ -197,7 +199,7 @@ export default function RoomDetailPage() {
               </div>
             ) : !room ? (
               <div>
-                <h2 className="text-3xl font-bold text-slate-500">Room not found</h2>
+                <h2 className="text-3xl font-bold text-slate-500">{t('roomDetail.roomNotFound')}</h2>
               </div>
             ) : (
               <div className="flex items-end justify-between">
@@ -208,26 +210,26 @@ export default function RoomDetailPage() {
                       !isCurrentlyBooked ? (
                         <span className="flex items-center gap-1.5 px-3 py-1 bg-tertiary-container text-tertiary-fixed rounded-full text-xs font-bold font-label tracking-wide">
                           <span className="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span>
-                          AVAILABLE
+                          {t('roomDetail.available')}
                         </span>
                       ) : (
                         <span className="flex items-center gap-1.5 px-3 py-1 bg-error-container text-error rounded-full text-xs font-bold font-label tracking-wide">
                           <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
-                          UNAVAILABLE (BOOKED)
+                          {t('roomDetail.unavailableBooked')}
                         </span>
                       )
                     ) : (
                       <span className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high text-slate-500 rounded-full text-xs font-bold font-label tracking-wide">
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                        CLOSED
+                        {t('roomDetail.closed')}
                       </span>
                     )}
                     <div className="flex items-center gap-4 text-slate-500 text-sm">
-                      <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">layers</span>{room.floor || 'General'}</span>
-                      <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">groups</span>{room.capacity} seats</span>
+                      <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">layers</span>{room.floor || t('roomDetail.general')}</span>
+                      <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">groups</span>{room.capacity} {t('roomDetail.seats')}</span>
                       {room.hourlyRate && (
                         <div className="flex items-center gap-1 font-bold text-slate-800 dark:text-slate-200">
-                          <span className="material-symbols-outlined text-[16px]">payments</span>{formatRupiah(room.hourlyRate)}/hr
+                          <span className="material-symbols-outlined text-[16px]">payments</span>{formatRupiah(room.hourlyRate)}{t('roomDetail.hr')}
                         </div>
                       )}
                     </div>
@@ -236,11 +238,11 @@ export default function RoomDetailPage() {
                 <div className="flex items-center gap-3">
                   {user?.role === 'admin' && (
                     <button onClick={() => setIsEditModalOpen(true)} className="bg-surface-container-high text-on-surface px-6 py-4 rounded-xl font-bold tracking-tight hover:bg-surface-container-highest transition-all active:scale-95 duration-200">
-                      Edit
+                      {t('roomDetail.edit')}
                     </button>
                   )}
                   <button onClick={() => navigate(`/bookings/new?roomId=${room.id}`)} disabled={room.status !== 'active'} className="bg-gradient-to-br from-primary to-primary-container text-white px-8 py-4 rounded-xl font-bold tracking-tight shadow-[0_20px_40px_rgba(0,27,60,0.15)] hover:shadow-[0_30px_60px_rgba(0,27,60,0.2)] transition-all active:scale-95 duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                    {room.status === 'active' ? 'Book Now' : 'Closed'}
+                    {room.status === 'active' ? t('roomDetail.bookNow') : t('roomDetail.closedBtn')}
                   </button>
                 </div>
               </div>
@@ -277,7 +279,7 @@ export default function RoomDetailPage() {
                         <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={`${API_BASE}/${room.images[2].filePath.replace(/\\/g, '/')}`} alt={`${room.name} View 3`}/>
                         {room.images.length > 3 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center hover:bg-black/40 transition-colors">
-                            <span className="text-white font-bold text-lg">+{room.images.length - 3} Photos</span>
+                            <span className="text-white font-bold text-lg">+{room.images.length - 3} {t('roomDetail.photos')}</span>
                           </div>
                         )}
                       </div>
@@ -292,10 +294,10 @@ export default function RoomDetailPage() {
                 {/* Timeline Section */}
                 <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
                   <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-xl font-bold tracking-tight text-primary font-headline">Today's Schedule</h3>
+                    <h3 className="text-xl font-bold tracking-tight text-primary font-headline">{t('roomDetail.todaysSchedule')}</h3>
                     <div className="flex items-center gap-4 text-xs font-label text-slate-400">
-                      <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-surface-container"></span> Available</div>
-                      <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary"></span> Booked</div>
+                      <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-surface-container"></span> {t('roomDetail.availableStatus')}</div>
+                      <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary"></span> {t('roomDetail.bookedStatus')}</div>
                     </div>
                   </div>
                   <div className="relative pt-6">
@@ -354,7 +356,7 @@ export default function RoomDetailPage() {
               {/* Side Info Panel */}
               <div className="col-span-12 lg:col-span-4 space-y-6">
                 <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
-                  <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-4">Room Facilities</h3>
+                  <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-4">{t('roomDetail.roomFacilities')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {room.roomAmenities && room.roomAmenities.length > 0 ? room.roomAmenities.map((ra) => (
                       <span key={ra.amenity.id} className="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-lg text-sm text-slate-600 border border-outline-variant/30 font-medium">
@@ -362,7 +364,7 @@ export default function RoomDetailPage() {
                         {ra.amenity.name}
                       </span>
                     )) : (
-                      <span className="text-sm text-slate-400">No facilities listed.</span>
+                      <span className="text-sm text-slate-400">{t('roomDetail.noFacilities')}</span>
                     )}
                   </div>
                 </div>
@@ -370,20 +372,20 @@ export default function RoomDetailPage() {
                 <div className="bg-white p-8 rounded-xl shadow-[0_20px_40px_rgba(0,27,60,0.04)] border border-outline-variant/20">
                   <div className="space-y-8">
                     <div>
-                      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-3">About This Room</h3>
+                      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-3">{t('roomDetail.aboutRoom')}</h3>
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {room.description || 'No description available for this room. Enjoy a productive session with premium amenities.'}
+                        {room.description || t('roomDetail.noDescription')}
                       </p>
                     </div>
                     <div>
-                      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-3">Location Detail</h3>
+                      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-3">{t('roomDetail.locationDetail')}</h3>
                       <p className="text-sm text-slate-600 flex items-start gap-2">
                         <span className="material-symbols-outlined text-[18px] text-slate-400 mt-0.5">location_on</span>
-                        {room.location || room.floor || 'General Floor'}
+                        {room.location || room.floor || t('roomDetail.generalFloor')}
                       </p>
                     </div>
                     <div>
-                      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-3">House Rules</h3>
+                      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-label font-bold mb-3">{t('roomDetail.houseRules')}</h3>
                       <ul className="space-y-2 text-sm text-slate-600">
                         {room.rules && room.rules.length > 0 ? (
                           room.rules.map((rule, idx) => (
@@ -391,9 +393,9 @@ export default function RoomDetailPage() {
                           ))
                         ) : (
                           <>
-                            <li className="flex items-start gap-2 before:content-['•'] before:text-slate-400">Please clean up after use</li>
-                            <li className="flex items-start gap-2 before:content-['•'] before:text-slate-400">Minimum booking duration: 30 minutes</li>
-                            <li className="flex items-start gap-2 before:content-['•'] before:text-slate-400">Do not unplug fixed equipment</li>
+                            <li className="flex items-start gap-2 before:content-['•'] before:text-slate-400">{t('roomDetail.rule1')}</li>
+                            <li className="flex items-start gap-2 before:content-['•'] before:text-slate-400">{t('roomDetail.rule2')}</li>
+                            <li className="flex items-start gap-2 before:content-['•'] before:text-slate-400">{t('roomDetail.rule3')}</li>
                           </>
                         )}
                       </ul>
@@ -461,7 +463,7 @@ export default function RoomDetailPage() {
       <div className="lg:hidden fixed bottom-6 left-6 right-6 z-50">
         <button onClick={() => navigate('/bookings/new')} className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-2xl backdrop-blur-md flex items-center justify-center gap-2">
           <span className="material-symbols-outlined">bolt</span>
-          Instant Booking
+          {t('roomDetail.instantBooking')}
         </button>
       </div>
 
@@ -472,8 +474,8 @@ export default function RoomDetailPage() {
           <div className="bg-surface relative z-10 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-8 py-6 border-b border-surface-container flex items-center justify-between bg-surface-container-lowest">
               <div>
-                <h3 className="text-2xl font-bold text-primary">Edit Room</h3>
-                <p className="text-sm text-slate-500 mt-1">Update details for {room.name}</p>
+                <h3 className="text-2xl font-bold text-primary">{t('roomDetail.editRoom')}</h3>
+                <p className="text-sm text-slate-500 mt-1">{t('roomDetail.updateDetails')} {room.name}</p>
               </div>
               <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 bg-surface-container hover:bg-surface-container-high p-2 rounded-full transition-colors">
                 <span className="material-symbols-outlined">close</span>
@@ -484,7 +486,7 @@ export default function RoomDetailPage() {
               <form id="editRoomForm" onSubmit={handleUpdateRoom} className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Room Name</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.roomName')}</label>
                     <input 
                       required
                       value={editData.name}
@@ -493,7 +495,7 @@ export default function RoomDetailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Location / Floor</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.locationFloor')}</label>
                     <input 
                       required
                       value={editData.floor}
@@ -505,7 +507,7 @@ export default function RoomDetailPage() {
 
                 <div className="grid grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Capacity</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.capacity')}</label>
                     <input 
                       type="number"
                       required min="1"
@@ -515,7 +517,7 @@ export default function RoomDetailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hourly Rate (Rp)</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.hourlyRate')}</label>
                     <input 
                       type="number"
                       min="0" step="10000"
@@ -525,21 +527,21 @@ export default function RoomDetailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.status')}</label>
                     <select 
                       value={editData.status}
                       onChange={(e) => setEditData({...editData, status: e.target.value})}
                       className="w-full bg-surface-container border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive / Closed</option>
-                      <option value="maintenance">Maintenance</option>
+                      <option value="active">{t('roomDetail.statusActive')}</option>
+                      <option value="inactive">{t('roomDetail.statusInactive')}</option>
+                      <option value="maintenance">{t('roomDetail.statusMaintenance')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Description</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.description')}</label>
                   <textarea 
                     value={editData.description}
                     onChange={(e) => setEditData({...editData, description: e.target.value})}
@@ -548,7 +550,7 @@ export default function RoomDetailPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Room Images (Upload Multiple)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('roomDetail.roomImages')}</label>
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-wrap gap-4">
                       {/* Show existing images if no new files selected */}
@@ -573,7 +575,7 @@ export default function RoomDetailPage() {
                       onChange={(e) => setImageFiles(Array.from(e.target.files))}
                       className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
                     />
-                    <p className="text-xs text-slate-400">Uploading new images will replace all existing images for this room.</p>
+                    <p className="text-xs text-slate-400">{t('roomDetail.uploadWarning')}</p>
                   </div>
                 </div>
               </form>
@@ -581,10 +583,10 @@ export default function RoomDetailPage() {
             
             <div className="p-6 border-t border-surface-container bg-surface-container-lowest flex justify-end gap-3">
               <button onClick={() => setIsEditModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-surface-container transition-colors">
-                Cancel
+                {t('roomDetail.cancel')}
               </button>
               <button type="submit" form="editRoomForm" className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                Save Changes
+                {t('roomDetail.saveChanges')}
               </button>
             </div>
           </div>

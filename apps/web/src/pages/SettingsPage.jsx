@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import TopRightNav from '../components/TopRightNav';
 import { fetchApi } from '../lib/api';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
+import i18n from '../lib/i18n';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const { t } = useTranslation();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -65,12 +68,17 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
-        showToast('Profile saved successfully!');
+        // Sync language immediately
+        if (formData.language) {
+          i18n.changeLanguage(formData.language);
+          localStorage.setItem('appLanguage', formData.language);
+        }
+        showToast(t('settings.profileSaved'));
       } else {
-        showToast('Failed to save profile', 'error');
+        showToast(t('settings.saveFailed'), 'error');
       }
     } catch (e) {
-      showToast('An error occurred', 'error');
+      showToast(t('settings.errorOccurred'), 'error');
     } finally {
       setSaving(false);
     }
@@ -85,9 +93,9 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPrefs),
       });
-      showToast('Preference updated!');
+      showToast(t('settings.prefUpdated'));
     } catch (e) {
-      showToast('Failed to update preference', 'error');
+      showToast(t('settings.prefFailed'), 'error');
       setPrefs(prefs); // revert
     }
   };
@@ -135,7 +143,7 @@ export default function SettingsPage() {
         {/* TopNavBar */}
         <header className="w-full h-16 sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 shadow-sm">
           <div className="flex items-center gap-4">
-            <h2 className="font-headline tracking-tight font-bold text-slate-900 dark:text-slate-50">Settings & Profile</h2>
+            <h2 className="font-headline tracking-tight font-bold text-slate-900 dark:text-slate-50">{t('settings.headerTitle')}</h2>
           </div>
           <TopRightNav />
         </header>
@@ -144,8 +152,8 @@ export default function SettingsPage() {
         <div className="p-10 max-w-6xl mx-auto space-y-12">
           {/* Page Header */}
           <section className="relative">
-            <h1 className="text-5xl font-extrabold font-headline tracking-tighter text-primary mb-2">User Profile</h1>
-            <p className="text-on-surface-variant font-body max-w-lg">Manage your digital concierge experience, personal details, and how we communicate with you.</p>
+            <h1 className="text-5xl font-extrabold font-headline tracking-tighter text-primary mb-2">{t('settings.title')}</h1>
+            <p className="text-on-surface-variant font-body max-w-lg">{t('settings.subtitle')}</p>
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start font-body">
@@ -161,34 +169,34 @@ export default function SettingsPage() {
                   <div className="flex-1 w-full space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Full Name</label>
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">{t('settings.fullName')}</label>
                         <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text"
                           value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Job Title</label>
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">{t('settings.jobTitle')}</label>
                         <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text"
                           value={formData.jobTitle} onChange={e => setFormData({...formData, jobTitle: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Email Address</label>
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">{t('settings.email')}</label>
                         <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium opacity-60 cursor-not-allowed" type="email"
                           value={profile?.email || ''} disabled />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Phone Number</label>
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">{t('settings.phone')}</label>
                         <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="tel"
                           value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+62 812 3456 7890" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Department</label>
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">{t('settings.department')}</label>
                         <input className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary/10 transition-all font-medium" type="text"
                           value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} placeholder="Engineering" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">Interface Language</label>
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant ml-1">{t('settings.interfaceLanguage')}</label>
                         <select className="w-full bg-surface-container border-none outline-none rounded-xl px-4 py-3 text-sm focus:ring-0 font-medium"
-                          value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})}>
+                          value={formData.language} onChange={e => { setFormData({...formData, language: e.target.value}); i18n.changeLanguage(e.target.value); localStorage.setItem('appLanguage', e.target.value); }}>
                           <option value="en">English</option>
                           <option value="id">Bahasa Indonesia</option>
                         </select>
@@ -198,7 +206,7 @@ export default function SettingsPage() {
                       <button onClick={saveProfile} disabled={saving}
                         className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 flex items-center gap-2">
                         {saving && <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>}
-                        {saving ? 'Saving...' : 'Save Profile'}
+                        {saving ? t('settings.saving') : t('settings.saveProfile')}
                       </button>
                     </div>
                   </div>
@@ -208,8 +216,8 @@ export default function SettingsPage() {
               {/* Notification Preferences */}
               <div className="bg-surface-container-low p-10 rounded-[2rem] space-y-8">
                 <div>
-                  <h3 className="text-2xl font-bold font-headline text-primary">Notification Preferences</h3>
-                  <p className="text-sm text-on-surface-variant mt-1">Select how you'd like to stay informed about bookings and alerts.</p>
+                  <h3 className="text-2xl font-bold font-headline text-primary">{t('settings.notificationPrefs')}</h3>
+                  <p className="text-sm text-on-surface-variant mt-1">{t('settings.notificationDesc')}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Email */}
@@ -223,8 +231,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="font-bold text-sm">Email Alerts</p>
-                      <p className="text-xs text-on-surface-variant mt-1">Confirmations, cancellations, and weekly summaries.</p>
+                      <p className="font-bold text-sm">{t('settings.emailAlerts')}</p>
+                      <p className="text-xs text-on-surface-variant mt-1">{t('settings.emailDesc')}</p>
                     </div>
                   </div>
                   {/* Push */}
@@ -238,8 +246,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="font-bold text-sm">Push Notifications</p>
-                      <p className="text-xs text-on-surface-variant mt-1">Real-time alerts via mobile and desktop browser.</p>
+                      <p className="font-bold text-sm">{t('settings.pushNotifications')}</p>
+                      <p className="text-xs text-on-surface-variant mt-1">{t('settings.pushDesc')}</p>
                     </div>
                   </div>
                   {/* SMS */}
@@ -253,8 +261,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="font-bold text-sm">SMS Messages</p>
-                      <p className="text-xs text-on-surface-variant mt-1">Urgent room changes and emergency alerts.</p>
+                      <p className="font-bold text-sm">{t('settings.smsMessages')}</p>
+                      <p className="text-xs text-on-surface-variant mt-1">{t('settings.smsDesc')}</p>
                     </div>
                   </div>
                 </div>
@@ -265,25 +273,25 @@ export default function SettingsPage() {
             <div className="lg:col-span-4 space-y-8">
               <div className="bg-surface-container-lowest p-8 rounded-[2rem] shadow-[0_20px_40px_rgba(0,27,60,0.04)] space-y-8">
                 <div>
-                  <h3 className="text-xl font-bold font-headline text-primary">Account Security</h3>
-                  <p className="text-xs text-on-surface-variant mt-1">Protect your executive workspace.</p>
+                  <h3 className="text-xl font-bold font-headline text-primary">{t('settings.accountSecurity')}</h3>
+                  <p className="text-xs text-on-surface-variant mt-1">{t('settings.protectWorkspace')}</p>
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-semibold">Role</span>
+                      <span className="text-xs font-semibold">{t('settings.role')}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${profile?.role === 'admin' ? 'bg-tertiary-container text-tertiary-fixed' : 'bg-surface-container-high text-on-surface-variant'}`}>
                         {profile?.role?.toUpperCase() || 'USER'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-semibold">Email Verified</span>
+                      <span className="text-xs font-semibold">{t('settings.emailVerified')}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${profile?.emailVerified ? 'bg-tertiary-container text-tertiary-fixed' : 'bg-error-container text-error'}`}>
-                        {profile?.emailVerified ? 'VERIFIED' : 'NOT VERIFIED'}
+                        {profile?.emailVerified ? t('settings.verified') : t('settings.notVerified')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-semibold">Member Since</span>
+                      <span className="text-xs font-semibold">{t('settings.memberSince')}</span>
                       <span className="text-[10px] bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full font-bold">
                         {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' }) : '-'}
                       </span>
@@ -296,15 +304,15 @@ export default function SettingsPage() {
               <div className="bg-primary rounded-[2rem] p-8 text-white space-y-6 shadow-xl relative overflow-hidden group">
                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary-container rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                 <div className="relative z-10">
-                  <p className="text-[10px] uppercase tracking-[0.2em] opacity-60 font-bold mb-4">Account Info</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] opacity-60 font-bold mb-4">{t('settings.accountInfo')}</p>
                   <h4 className="text-2xl font-black font-headline">{profile?.name || 'User'}</h4>
                   <p className="text-sm opacity-80 mt-1">{profile?.email}</p>
                   <div className="mt-6 flex items-end gap-2">
-                    <span className="text-sm opacity-60">{profile?.department || 'No department set'}</span>
+                    <span className="text-sm opacity-60">{profile?.department || t('settings.noDepartment')}</span>
                   </div>
                   <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center">
                     <span className="text-[10px] font-bold tracking-widest uppercase py-1 px-3 bg-white/10 rounded-full">
-                      {profile?.role === 'admin' ? '🛡️ Administrator' : '👤 Member'}
+                      {profile?.role === 'admin' ? `🛡️ ${t('settings.administrator')}` : `👤 ${t('settings.member')}`}
                     </span>
                   </div>
                 </div>

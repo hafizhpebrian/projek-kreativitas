@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const { t } = useTranslation();
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -74,8 +76,8 @@ export default function SignUpPage() {
               <span className="material-symbols-outlined text-primary-container text-3xl">meeting_room</span>
               <span className="font-headline font-extrabold text-primary-container text-2xl tracking-tighter">SI-BOOK</span>
             </div>
-            <h2 className="font-headline font-bold text-4xl text-on-surface mb-3 tracking-tight">Create Account</h2>
-            <p className="text-on-surface-variant font-medium text-center">Register for a corporate account.</p>
+            <h2 className="font-headline font-bold text-4xl text-on-surface mb-3 tracking-tight">{t('signup.title')}</h2>
+            <p className="text-on-surface-variant font-medium text-center">{t('signup.subtitle')}</p>
           </div>
 
           {/* Form Content */}
@@ -101,7 +103,7 @@ export default function SignUpPage() {
             }
           }}>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">FULL NAME</label>
+              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">{t('signup.fullName').toUpperCase()}</label>
               <input 
                 name="fullName"
                 className="w-full h-14 px-5 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" 
@@ -112,7 +114,7 @@ export default function SignUpPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">EMAIL ADDRESS</label>
+              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">{t('signup.email').toUpperCase()}</label>
               <input 
                 name="email"
                 className="w-full h-14 px-5 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" 
@@ -123,7 +125,7 @@ export default function SignUpPage() {
             </div>
             
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">PASSWORD</label>
+              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">{t('signup.password').toUpperCase()}</label>
               <input 
                 name="password"
                 className="w-full h-14 px-5 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" 
@@ -140,7 +142,7 @@ export default function SignUpPage() {
               type="submit"
               disabled={loading}
             >
-              {loading ? 'CREATING ACCOUNT...' : 'SIGN UP'}
+              {loading ? t('signup.creating').toUpperCase() : t('signup.createAccount').toUpperCase()}
             </button>
           </form>
 
@@ -172,7 +174,7 @@ export default function SignUpPage() {
           </div>
 
           <p className="mt-10 text-sm text-on-surface-variant font-medium">
-            Already have an account? <Link to="/login" className="text-primary-container font-bold hover:underline">Sign In</Link>
+            {t('signup.haveAccount')} <Link to="/login" className="text-primary-container font-bold hover:underline">{t('signup.signIn')}</Link>
           </p>
         </div>
       </section>

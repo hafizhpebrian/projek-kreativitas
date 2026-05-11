@@ -5,6 +5,7 @@ import { fetchApi, API_BASE } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function NewBookingPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function NewBookingPage() {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -186,8 +188,8 @@ export default function NewBookingPage() {
               <span className="material-symbols-outlined text-[14px]">chevron_right</span>
               <span className="text-on-surface">New Booking</span>
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight font-headline text-primary">Create New Reservation</h1>
-            <p className="text-on-surface-variant mt-2 text-lg">Secure your workspace in just a few clicks.</p>
+            <h1 className="text-4xl font-extrabold tracking-tight font-headline text-primary">{t('newBooking.title')}</h1>
+            <p className="text-on-surface-variant mt-2 text-lg">{t('newBooking.subtitle')}</p>
           </div>
 
           {error && (
@@ -204,14 +206,14 @@ export default function NewBookingPage() {
               <form id="booking-form" className="space-y-8" onSubmit={handleSubmit}>
                 {/* Meeting Title */}
                 <div>
-                  <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Meeting Title</label>
-                  <input name="title" value={formData.title} onChange={handleChange} required className="w-full bg-surface-container border-none rounded-xl py-4 px-5 text-on-surface focus:ring-0 focus:bg-white focus:shadow-md transition-all placeholder:text-outline/50 outline-none text-sm" placeholder="e.g. Quarterly Strategic Planning" type="text"/>
+                  <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.meetingTitle')}</label>
+                  <input name="title" value={formData.title} onChange={handleChange} required className="w-full bg-surface-container border-none rounded-xl py-4 px-5 text-on-surface focus:ring-0 focus:bg-white focus:shadow-md transition-all placeholder:text-outline/50 outline-none text-sm" placeholder={t('newBooking.meetingTitlePlaceholder')} type="text"/>
                 </div>
 
                 {/* Atas Nama — Admin Only */}
                 {user?.role === 'admin' && (
                   <div>
-                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Atas Nama (On Behalf Of)</label>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.onBehalfOf')}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">person</span>
                       <input name="onBehalfOf" value={formData.onBehalfOf} onChange={handleChange} className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-5 text-on-surface focus:ring-0 focus:bg-white focus:shadow-md transition-all placeholder:text-outline/50 outline-none text-sm" placeholder="e.g. Budi Santoso" type="text"/>
@@ -222,7 +224,7 @@ export default function NewBookingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Room Selector */}
                   <div className="relative">
-                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Select Room</label>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.selectRoom')}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">meeting_room</span>
                       <select name="roomId" value={formData.roomId} onChange={handleChange} required className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-10 text-on-surface focus:ring-0 appearance-none cursor-pointer outline-none text-sm">
@@ -237,11 +239,11 @@ export default function NewBookingPage() {
 
                   {/* Capacity Indicator */}
                   <div>
-                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Attendance</label>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.attendees')}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">groups</span>
-                      <input name="attendees" value={formData.attendees} onChange={handleChange} required min="1" className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-5 text-on-surface focus:ring-0 transition-all outline-none text-sm" placeholder="8 People" type="number"/>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 bg-tertiary-container/10 rounded-md">
+                      <input name="attendees" value={formData.attendees} onChange={handleChange} required min="1" className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-20 text-on-surface focus:ring-0 transition-all outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="8" type="number"/>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 bg-tertiary-container/10 rounded-md pointer-events-none">
                         <span className="text-[10px] font-bold text-on-tertiary-container uppercase tracking-tight">Max {selectedRoom?.capacity || '-'}</span>
                       </div>
                     </div>
@@ -251,21 +253,21 @@ export default function NewBookingPage() {
                 {/* Date and Time */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-1">
-                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Date</label>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.date')}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">calendar_today</span>
                       <input name="date" value={formData.date} onChange={handleChange} onClick={(e) => e.target.showPicker && e.target.showPicker()} required className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-5 text-on-surface focus:ring-0 transition-all outline-none text-sm cursor-pointer" type="date"/>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Start Time</label>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.startTime')}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">schedule</span>
                       <input name="startTime" value={formData.startTime} onChange={handleChange} onClick={(e) => e.target.showPicker && e.target.showPicker()} required className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-5 text-on-surface focus:ring-0 transition-all outline-none text-sm cursor-pointer" type="time"/>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">End Time</label>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.endTime')}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">schedule</span>
                       <input name="endTime" value={formData.endTime} onChange={handleChange} onClick={(e) => e.target.showPicker && e.target.showPicker()} required className="w-full bg-surface-container border-none rounded-xl py-4 pl-12 pr-5 text-on-surface focus:ring-0 transition-all outline-none text-sm cursor-pointer" type="time"/>
@@ -275,8 +277,8 @@ export default function NewBookingPage() {
 
                 {/* Notes Area */}
                 <div>
-                  <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Additional Notes</label>
-                  <textarea name="notes" value={formData.notes} onChange={handleChange} className="w-full bg-surface-container border-none rounded-xl py-4 px-5 text-on-surface focus:ring-0 focus:bg-white transition-all placeholder:text-outline/50 resize-none outline-none text-sm" placeholder="Catering requirements, AV setup, etc." rows="4"></textarea>
+                  <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.notes')}</label>
+                  <textarea name="notes" value={formData.notes} onChange={handleChange} className="w-full bg-surface-container border-none rounded-xl py-4 px-5 text-on-surface focus:ring-0 focus:bg-white transition-all placeholder:text-outline/50 resize-none outline-none text-sm" placeholder={t('newBooking.notesPlaceholder')} rows="4"></textarea>
                 </div>
 
                 {/* Privacy Mode */}
@@ -296,7 +298,7 @@ export default function NewBookingPage() {
 
                 {/* Payment Method */}
                 <div>
-                  <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">Payment Method</label>
+                  <label className="block text-sm font-bold text-on-surface-variant mb-2 ml-1">{t('newBooking.paymentMethod')}</label>
                   <div className="grid grid-cols-2 gap-4">
                     <label className={`relative flex cursor-pointer rounded-xl px-5 py-4 border-2 transition-all ${formData.paymentMethod === 'online' ? 'border-primary bg-primary/5' : 'border-surface-container bg-surface-container-low'}`}>
                       <input type="radio" name="paymentMethod" value="online" checked={formData.paymentMethod === 'online'} onChange={handleChange} className="sr-only" />
@@ -342,7 +344,7 @@ export default function NewBookingPage() {
                   </div>
                   <div className="p-6 space-y-4">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-on-surface-variant font-medium">Hourly Rate</span>
+                      <span className="text-on-surface-variant font-medium">{t('newBooking.ratePerHour')}</span>
                       <span className="text-primary font-extrabold text-lg">{formatRupiah(selectedRoom.hourlyRate || 0)} / hr</span>
                     </div>
                     <div className="pt-4 border-t border-outline-variant/20 flex flex-col gap-2">
@@ -397,7 +399,7 @@ export default function NewBookingPage() {
                   <div className="flex gap-4 text-xs font-medium text-on-surface-variant pt-2">
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-primary-container"></div>
-                      <span>Your Slot</span>
+                      <span>{t('newBooking.yourSlot')}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-error/30"></div>
@@ -412,11 +414,11 @@ export default function NewBookingPage() {
           {/* Bottom Actions Bar */}
           <div className="mt-10 mb-8 pt-8 border-t border-outline-variant/10 flex flex-col sm:flex-row items-center justify-end gap-4">
             <button onClick={() => navigate('/bookings')} className="w-full sm:w-auto px-10 py-4 text-on-surface font-bold hover:bg-surface-container-high transition-all rounded-xl">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button form="booking-form" type="submit" disabled={loading} className="w-full sm:w-auto px-12 py-4 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-[0_10px_20px_rgba(0,9,27,0.2)] hover:shadow-[0_15px_30px_rgba(0,9,27,0.3)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-[20px]">{loading ? 'hourglass_empty' : 'calendar_add_on'}</span>
-              {loading ? 'Processing...' : 'Book Room'}
+              {loading ? t('newBooking.booking') : t('newBooking.confirmBooking')}
             </button>
           </div>
         </main>

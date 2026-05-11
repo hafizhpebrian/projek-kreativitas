@@ -5,10 +5,12 @@ import { fetchApi, API_BASE } from '../lib/api';
 import { formatRupiah } from '../lib/formatRupiah';
 import TopRightNav from '../components/TopRightNav';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function RoomExplorerPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [amenities, setAmenities] = useState([]);
@@ -186,7 +188,7 @@ export default function RoomExplorerPage() {
       setIsAddRoomModalOpen(false);
       setNewRoomData({ name: '', floor_level: 'Ground Floor', capacity: 10, facilities: ['Gigabit Fiber'], imageFiles: [], imagePreviews: [] });
       
-      showToast('Room successfully created!', 'success');
+      showToast(t('roomExplorer.roomCreated'), 'success');
       
       // Refresh rooms list
       await loadRooms();
@@ -226,13 +228,13 @@ export default function RoomExplorerPage() {
           {/* Page Header */}
           <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-5xl font-headline font-extrabold tracking-tight text-primary mb-2">Room Inventory / Explorer</h2>
-              <p className="text-on-surface-variant font-body">Manage your workspace ecosystem with precision.</p>
+              <h2 className="text-5xl font-headline font-extrabold tracking-tight text-primary mb-2">{t('roomExplorer.title')}</h2>
+              <p className="text-on-surface-variant font-body">{t('roomExplorer.subtitle')}</p>
             </div>
             {user?.role === 'admin' && (
               <button onClick={() => setIsAddRoomModalOpen(true)} className="bg-gradient-to-br from-primary to-primary-container text-white px-8 py-4 rounded-xl font-bold shadow-[0_20px_40px_rgba(0,9,27,0.15)] hover:scale-105 transition-all flex items-center gap-2">
                 <span className="material-symbols-outlined">add</span>
-                Add New Room
+                {t('roomExplorer.addRoom')}
               </button>
             )}
           </div>
@@ -308,8 +310,8 @@ export default function RoomExplorerPage() {
           ) : filteredRooms.length === 0 ? (
              <div className="bg-surface-container-lowest p-12 text-center rounded-xl border border-dashed border-slate-200">
                <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">domain_disabled</span>
-               <h3 className="text-xl font-bold text-slate-700">No Rooms Found</h3>
-               <p className="text-slate-500 mt-2">There are currently no rooms available matching your filters.</p>
+               <h3 className="text-xl font-bold text-slate-700">{t('roomExplorer.noRooms')}</h3>
+               <p className="text-slate-500 mt-2">{t('roomExplorer.clearFilters')}</p>
              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -401,16 +403,16 @@ export default function RoomExplorerPage() {
             {/* Left Side: Visual/Context */}
             <div className="md:w-1/3 bg-primary-container p-10 flex flex-col justify-between relative overflow-hidden">
               <div className="relative z-10">
-                <span className="text-secondary-fixed-dim text-[10px] font-bold tracking-[0.3em] uppercase block mb-4">Configuration</span>
-                <h2 className="text-3xl font-bold font-headline text-white leading-tight">Design a Space for Success.</h2>
-                <p className="text-on-primary-container text-sm mt-4 leading-relaxed tracking-wide">Ensure every detail of your room reflects the premium standards of SI-BOOK.</p>
+                <span className="text-secondary-fixed-dim text-[10px] font-bold tracking-[0.3em] uppercase block mb-4">{t('roomExplorer.configLabel')}</span>
+                <h2 className="text-3xl font-bold font-headline text-white leading-tight">{t('roomExplorer.designSpace')}</h2>
+                <p className="text-on-primary-container text-sm mt-4 leading-relaxed tracking-wide">{t('roomExplorer.ensureDetail')}</p>
               </div>
               <div className="relative z-10 pt-8 border-t border-white/10">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-tertiary-container flex items-center justify-center">
                     <span className="material-symbols-outlined text-tertiary-fixed text-sm">info</span>
                   </div>
-                  <p className="text-xs text-on-primary-container font-medium leading-tight">Auto-populates to the global calendar upon saving.</p>
+                  <p className="text-xs text-on-primary-container font-medium leading-tight">{t('roomExplorer.autoPopulate')}</p>
                 </div>
               </div>
               {/* Abstract Decorative Element */}
@@ -420,7 +422,7 @@ export default function RoomExplorerPage() {
             {/* Right Side: Form */}
             <div className="md:w-2/3 p-10 bg-surface-container-lowest overflow-y-auto">
               <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-bold font-headline text-primary">Room Details</h3>
+                <h3 className="text-2xl font-bold font-headline text-primary">{t('roomExplorer.addRoom')}</h3>
                 <button onClick={() => setIsAddRoomModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
                   <span className="material-symbols-outlined text-slate-400">close</span>
                 </button>
@@ -429,7 +431,7 @@ export default function RoomExplorerPage() {
                 {/* Basic Info Row */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Room Name</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.roomName')}</label>
                     <input 
                       value={newRoomData.name} 
                       onChange={(e) => setNewRoomData({...newRoomData, name: e.target.value})}
@@ -440,7 +442,7 @@ export default function RoomExplorerPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Floor Level</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.floorLevel')}</label>
                     <select 
                       value={newRoomData.floor_level}
                       onChange={(e) => setNewRoomData({...newRoomData, floor_level: e.target.value})}
@@ -454,7 +456,7 @@ export default function RoomExplorerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Location Detail (Optional)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.locationDetail')}</label>
                   <input 
                     value={newRoomData.location} 
                     onChange={(e) => setNewRoomData({...newRoomData, location: e.target.value})}
@@ -467,7 +469,7 @@ export default function RoomExplorerPage() {
                 {/* Capacity & Hourly Rate */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Seating Capacity</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.seatingCapacity')}</label>
                     <div className="flex items-center gap-4 bg-surface-container rounded-xl p-1 h-12">
                       <button 
                         onClick={() => setNewRoomData({...newRoomData, capacity: Math.max(1, newRoomData.capacity - 1)})}
@@ -492,7 +494,7 @@ export default function RoomExplorerPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Hourly Rate (Rp)</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.hourlyRate')}</label>
                     <div className="flex items-center bg-surface-container rounded-xl p-1 h-12">
                       <span className="text-slate-400 ml-3 font-bold">Rp</span>
                       <input 
@@ -510,7 +512,7 @@ export default function RoomExplorerPage() {
                 
                 {/* Facilities Checkboxes */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Facilities & Equipment</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.facilities')}</label>
                   <div className="flex flex-wrap gap-2">
                     {amenities.map(amenity => (
                       <label key={amenity.id} className="group cursor-pointer">
@@ -537,7 +539,7 @@ export default function RoomExplorerPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">House Rules (One per line)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.houseRules')}</label>
                   <textarea 
                     value={newRoomData.rules.join('\n')} 
                     onChange={(e) => setNewRoomData({...newRoomData, rules: e.target.value.split('\n').filter(r => r.trim() !== '')})}
@@ -548,7 +550,7 @@ export default function RoomExplorerPage() {
                 
                 {/* Image Uploader */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Room Photography (Max 5)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{t('roomExplorer.roomPhotography')}</label>
                   <label className="border-2 border-dashed border-outline-variant/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-surface-container-low/30 hover:bg-surface-container transition-colors group cursor-pointer relative overflow-hidden min-h-[160px]">
                     <input 
                       type="file" 
@@ -602,9 +604,9 @@ export default function RoomExplorerPage() {
                           <span className="material-symbols-outlined text-primary">upload_file</span>
                         </div>
                         <p className="text-sm font-semibold text-primary">
-                          <span className="text-secondary underline underline-offset-4">Browse</span> or drop images here
+                          <span className="text-secondary underline underline-offset-4">{t('roomExplorer.browse')}</span> {t('roomExplorer.orDropImages')}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-2 font-medium">Select multiple images (JPEG/PNG)</p>
+                        <p className="text-[10px] text-slate-400 mt-2 font-medium">{t('roomExplorer.selectMultiple')}</p>
                       </div>
                     )}
                   </label>
@@ -613,10 +615,10 @@ export default function RoomExplorerPage() {
                 {/* Form Actions */}
                 <div className="flex items-center justify-end gap-4 pt-6">
                   <button onClick={() => setIsAddRoomModalOpen(false)} className="px-6 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-surface-container transition-all" type="button">
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button className="bg-gradient-to-br from-primary to-primary-container text-white px-10 py-3 rounded-xl text-sm font-bold shadow-[0_10px_25px_rgba(0,9,27,0.1)] hover:scale-[1.02] active:scale-95 transition-all" type="submit">
-                    Save Room
+                    {t('roomExplorer.saveRoom')}
                   </button>
                 </div>
               </form>
@@ -632,22 +634,22 @@ export default function RoomExplorerPage() {
             <div className="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <span className="material-symbols-outlined text-error text-4xl">warning</span>
             </div>
-            <h3 className="text-2xl font-bold font-headline text-slate-900 mb-2">Delete Room?</h3>
+            <h3 className="text-2xl font-bold font-headline text-slate-900 mb-2">{t('roomExplorer.deleteRoomTitle')}</h3>
             <p className="text-slate-500 mb-8 font-body">
-              Are you sure you want to permanently delete <strong className="text-slate-700">"{deleteConfirmation.roomName}"</strong>? This action cannot be undone.
+              {t('roomExplorer.confirmDeleteMsg')} <strong className="text-slate-700">"{deleteConfirmation.roomName}"</strong>? {t('roomExplorer.thisAction')}
             </p>
             <div className="flex gap-4">
               <button 
                 onClick={() => setDeleteConfirmation({ isOpen: false, roomId: null, roomName: '' })} 
                 className="flex-1 px-6 py-4 rounded-xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button 
                 onClick={executeDeleteRoom} 
                 className="flex-1 bg-error hover:bg-error-container hover:text-on-error-container text-white px-6 py-4 rounded-xl font-bold shadow-lg shadow-error/30 hover:shadow-xl transition-all active:scale-95"
               >
-                Yes, Delete
+                {t('roomExplorer.yesDelete')}
               </button>
             </div>
           </div>

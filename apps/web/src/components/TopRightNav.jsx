@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchApi } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 
 export default function TopRightNav() {
   const { user } = useAuth();
@@ -9,6 +10,7 @@ export default function TopRightNav() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     async function loadNotifications() {
@@ -67,15 +69,15 @@ export default function TopRightNav() {
       {showNotifications && (
         <div className="absolute top-full right-16 mt-2 w-80 bg-surface-container-lowest border border-surface-container-high rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-4 border-b border-surface-container-high flex justify-between items-center bg-surface-container-lowest">
-            <h4 className="font-bold text-on-surface">Notifications</h4>
+            <h4 className="font-bold text-on-surface">{t('topNav.notifications')}</h4>
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
-              {notifications.length} New
+              {notifications.length} {t('topNav.new')}
             </span>
           </div>
           <div className="max-h-80 overflow-y-auto no-scrollbar">
             {notifications.length === 0 ? (
               <div className="p-8 text-center text-on-surface-variant text-sm">
-                You have no new notifications.
+                {t('topNav.noNotifications')}
               </div>
             ) : (
               <div className="flex flex-col">
@@ -84,9 +86,9 @@ export default function TopRightNav() {
                     setShowNotifications(false);
                     navigate('/my-bookings');
                   }}>
-                    <p className="text-sm font-bold text-on-surface mb-1">Upcoming Meeting</p>
+                    <p className="text-sm font-bold text-on-surface mb-1">{t('topNav.upcomingMeeting')}</p>
                     <p className="text-xs text-on-surface-variant line-clamp-2">
-                      You have a confirmed booking at <strong>{booking.room?.name}</strong> on {booking.date} at {booking.startTime}.
+                      {t('topNav.confirmedBookingAt')} <strong>{booking.room?.name}</strong> {t('topNav.on')} {booking.date} {t('topNav.at')} {booking.startTime}.
                     </p>
                   </div>
                 ))}
@@ -101,7 +103,7 @@ export default function TopRightNav() {
                 navigate('/my-bookings');
               }}
             >
-              View All Bookings
+              {t('topNav.viewAllBookings')}
             </div>
           )}
         </div>

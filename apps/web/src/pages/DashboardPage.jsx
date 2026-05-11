@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchApi, API_BASE } from '../lib/api';
 import TopRightNav from '../components/TopRightNav';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const [upcoming, setUpcoming] = useState([]);
   const [popularRooms, setPopularRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -97,7 +99,7 @@ export default function DashboardPage() {
       <header className="fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] h-16 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between pl-16 pr-4 lg:px-8 z-40 transition-shadow focus-within:shadow-lg">
         <div className="flex items-center bg-surface-container rounded-full px-4 py-1.5 w-96">
           <span className="material-symbols-outlined text-on-surface-variant text-lg">search</span>
-          <input className="bg-transparent border-none focus:ring-0 text-sm w-full font-['Inter'] outline-none" placeholder="Search for rooms or meetings..." type="text" />
+          <input className="bg-transparent border-none focus:ring-0 text-sm w-full font-['Inter'] outline-none" placeholder={t('dashboard.searchPlaceholder')} type="text" />
         </div>
         <TopRightNav />
       </header>
@@ -107,7 +109,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-8 py-10">
           {/* Welcome Header */}
           <div className="mb-12">
-            <h2 className="text-4xl font-extrabold tracking-tight text-primary mb-2">Welcome back, {user?.name?.split(' ')[0] || 'User'}</h2>
+            <h2 className="text-4xl font-extrabold tracking-tight text-primary mb-2">{t('dashboard.welcomeBack')} {user?.name?.split(' ')[0] || 'User'}</h2>
             <p className="text-on-surface-variant font-medium flex items-center gap-2">
               <span className="material-symbols-outlined text-base">event</span>
               {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
@@ -126,7 +128,7 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-3xl">domain</span>
                 </div>
                 <div>
-                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Total Rooms</p>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">{t('dashboard.totalRooms')}</p>
                   <h3 className="text-3xl font-extrabold text-primary">{stats.totalRooms || 0}</h3>
                 </div>
               </div>
@@ -136,7 +138,7 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-3xl">event_available</span>
                 </div>
                 <div>
-                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Active Rooms</p>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">{t('dashboard.activeRooms')}</p>
                   <h3 className="text-3xl font-extrabold text-primary">{stats.availableNow || 0}</h3>
                 </div>
               </div>
@@ -146,7 +148,7 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-3xl">book_online</span>
                 </div>
                 <div>
-                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">Today's Bookings</p>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-1">{t('dashboard.todaysBookings')}</p>
                   <h3 className="text-3xl font-extrabold text-primary">{stats.todayBookings || 0}</h3>
                 </div>
               </div>
@@ -158,19 +160,19 @@ export default function DashboardPage() {
             {/* Upcoming Bookings (Wide) */}
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center justify-between">
-                <h4 className="text-xl font-bold text-primary">Your Upcoming Bookings</h4>
-                <button onClick={() => navigate('/bookings')} className="text-sm font-semibold text-secondary hover:underline">View All</button>
+                <h4 className="text-xl font-bold text-primary">{t('dashboard.yourUpcoming')}</h4>
+                <button onClick={() => navigate('/bookings')} className="text-sm font-semibold text-secondary hover:underline">{t('dashboard.viewAll')}</button>
               </div>
 
               {/* Booking Cards */}
               <div className="space-y-4">
                {loading ? (
-                   <p className="text-slate-500 animate-pulse">Loading upcoming bookings...</p>
+                    <p className="text-slate-500 animate-pulse">{t('dashboard.loadingBookings')}</p>
                 ) : upcoming.length === 0 ? (
                    <div className="bg-surface-container-lowest p-8 rounded-xl border border-dashed border-slate-200 text-center">
                      <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">event_busy</span>
-                     <p className="text-slate-500 font-medium">No upcoming bookings found.</p>
-                     <button onClick={() => navigate('/rooms')} className="mt-4 text-primary font-bold hover:underline">Book a room</button>
+                      <p className="text-slate-500 font-medium">{t('dashboard.noUpcoming')}</p>
+                      <button onClick={() => navigate('/rooms')} className="mt-4 text-primary font-bold hover:underline">{t('dashboard.bookRoom')}</button>
                    </div>
                 ) : upcoming.map((booking) => {
                   const roomImage = booking.room?.images?.[0]?.filePath;
@@ -276,7 +278,7 @@ export default function DashboardPage() {
 
           {/* Bottom Section: Popular Rooms */}
           <div>
-            <h4 className="text-xl font-bold text-primary mb-6">Popular Rooms</h4>
+            <h4 className="text-xl font-bold text-primary mb-6">{t('dashboard.popularRooms')}</h4>
             <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8">
               {loading ? (
                  <div className="flex gap-6">

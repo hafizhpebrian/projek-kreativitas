@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchApi } from '../lib/api';
 import TopRightNav from '../components/TopRightNav';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('day');
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  const { t } = useTranslation();
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'error') => {
@@ -153,9 +155,9 @@ export default function CalendarPage() {
               </div>
             </div>
             <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl">
-              <button onClick={() => setView('day')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${view === 'day' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900'}`}>Day</button>
-              <button onClick={() => setView('week')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${view === 'week' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900'}`}>Week</button>
-              <button onClick={() => setView('month')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${view === 'month' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900'}`}>Month</button>
+              <button onClick={() => setView('day')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${view === 'day' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900'}`}>{t('calendar.day')}</button>
+              <button onClick={() => setView('week')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${view === 'week' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900'}`}>{t('calendar.week')}</button>
+              <button onClick={() => setView('month')} className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${view === 'month' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900'}`}>{t('calendar.month')}</button>
             </div>
           </div>
 
@@ -329,12 +331,12 @@ export default function CalendarPage() {
                             const res = await fetchApi(`/bookings/${selectedEvent.id}/cancel`, { method: 'PATCH' });
                             if (res.ok) {
                               setSelectedEvent(null);
-                              showToast('Booking cancelled successfully.', 'success');
+                              showToast(t('calendar.cancelSuccess'), 'success');
                               // Refresh page data
                               const reloadRes = await fetchApi(`/calendar?date=${currentDate}`);
                               if (reloadRes.ok) setTimeline(await reloadRes.json());
                             } else {
-                              showToast('Failed to cancel booking.', 'error');
+                              showToast(t('calendar.cancelFailed'), 'error');
                             }
                           } catch(e) {
                             showToast('Network error.', 'error');
@@ -343,7 +345,7 @@ export default function CalendarPage() {
                       }} 
                       className="flex-1 py-3 text-xs font-bold text-white bg-error rounded-xl hover:bg-error/90 transition-colors"
                     >
-                      Cancel
+                      {t('calendar.cancel')}
                     </button>
                   </>
                 ) : (

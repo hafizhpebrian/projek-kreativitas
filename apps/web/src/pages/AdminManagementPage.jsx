@@ -4,10 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchApi } from '../lib/api';
 import TopRightNav from '../components/TopRightNav';
 import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminManagementPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   
   const [stats, setStats] = useState({
     totalBookingsToday: 0,
@@ -72,17 +74,17 @@ export default function AdminManagementPage() {
         {/* Header Section */}
         <div className="mb-10 flex justify-between items-end">
           <div>
-            <h2 className="text-4xl font-extrabold tracking-tight text-primary font-headline mb-2">Executive Overview</h2>
-            <p className="text-on-surface-variant font-medium">Welcome back, {user?.name?.split(' ')[0] || 'Administrator'}. Here's your concierge status.</p>
+            <h2 className="text-4xl font-extrabold tracking-tight text-primary font-headline mb-2">{t('admin.executiveOverview')}</h2>
+            <p className="text-on-surface-variant font-medium">{t('admin.welcomeBack')} {user?.name?.split(' ')[0] || 'Administrator'}. {t('admin.conciergeStatus')}</p>
           </div>
           <div className="flex gap-3">
             <button className="px-6 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-semibold text-sm shadow-[0_20px_40px_rgba(0,27,60,0.06)] hover:shadow-lg transition-all flex items-center gap-2">
               <span className="material-symbols-outlined text-lg">file_download</span>
-              Export Report
+              {t('admin.exportReport')}
             </button>
             <button onClick={() => navigate('/rooms/manage')} className="px-6 py-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2">
               <span className="material-symbols-outlined text-lg">edit_square</span>
-              Manage Rooms
+              {t('admin.manageRooms')}
             </button>
           </div>
         </div>
@@ -98,7 +100,7 @@ export default function AdminManagementPage() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-on-surface-variant mb-1">Total Bookings Today</p>
+              <p className="text-sm font-medium text-on-surface-variant mb-1">{t('admin.totalBookingsToday')}</p>
               <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
                 {loading ? '...' : stats.totalBookingsToday}
               </h3>
@@ -113,7 +115,7 @@ export default function AdminManagementPage() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-on-surface-variant mb-1">Occupancy Rate</p>
+              <p className="text-sm font-medium text-on-surface-variant mb-1">{t('admin.occupancyRate')}</p>
               <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
                 {loading ? '...' : `${stats.occupancyRate}%`}
               </h3>
@@ -131,7 +133,7 @@ export default function AdminManagementPage() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-on-surface-variant mb-1">Active Rooms</p>
+              <p className="text-sm font-medium text-on-surface-variant mb-1">{t('admin.activeRooms')}</p>
               <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
                 {loading ? '...' : <>{stats.activeRooms} <span className="text-sm font-medium text-slate-400">/ {stats.totalRooms}</span></>}
               </h3>
@@ -146,7 +148,7 @@ export default function AdminManagementPage() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-on-surface-variant mb-1">Conflicts / Issues</p>
+              <p className="text-sm font-medium text-on-surface-variant mb-1">{t('admin.conflictsIssues')}</p>
               <h3 className="text-3xl font-extrabold text-primary tracking-tighter">
                 {loading ? '...' : stats.issues}
               </h3>
@@ -160,11 +162,11 @@ export default function AdminManagementPage() {
           <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-3xl p-8 shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h4 className="text-xl font-bold text-primary">Booking Trends</h4>
-                <p className="text-sm text-on-surface-variant">Daily volume for the last 7 days</p>
+                <h4 className="text-xl font-bold text-primary">{t('admin.bookingTrends')}</h4>
+                <p className="text-sm text-on-surface-variant">{t('admin.dailyVolume')}</p>
               </div>
               <div className="flex gap-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed">Weekly</span>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed">{t('admin.weekly')}</span>
               </div>
             </div>
             
@@ -219,8 +221,8 @@ export default function AdminManagementPage() {
 
           {/* Bar Chart: Room Utilization */}
           <div className="col-span-12 lg:col-span-4 bg-surface-container-lowest rounded-3xl p-8 shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
-            <h4 className="text-xl font-bold text-primary mb-1">Room Utilization</h4>
-            <p className="text-sm text-on-surface-variant mb-8">Ranked by usage %</p>
+            <h4 className="text-xl font-bold text-primary mb-1">{t('admin.roomUtilization')}</h4>
+            <p className="text-sm text-on-surface-variant mb-8">{t('admin.rankedByUsage')}</p>
             <div className="space-y-6">
               {loading ? (
                 <div className="text-center text-slate-500 py-4">Loading...</div>
@@ -249,7 +251,7 @@ export default function AdminManagementPage() {
               )}
             </div>
             <button onClick={() => navigate('/reports')} className="w-full mt-8 py-3 text-xs font-bold uppercase tracking-widest text-primary border-t border-outline-variant/10 hover:text-on-primary-container transition-colors">
-              View All Assets
+              {t('admin.viewAllAssets')}
             </button>
           </div>
         </div>
@@ -257,8 +259,8 @@ export default function AdminManagementPage() {
         {/* Recent Activity Feed */}
         <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-[0_20px_40px_rgba(0,27,60,0.06)]">
           <div className="flex justify-between items-center mb-8">
-            <h4 className="text-xl font-bold text-primary">Recent Activity Feed</h4>
-            <button className="text-sm font-semibold text-secondary hover:underline transition-all">View Full Logs</button>
+            <h4 className="text-xl font-bold text-primary">{t('admin.recentActivity')}</h4>
+            <button className="text-sm font-semibold text-secondary hover:underline transition-all">{t('admin.viewFullLogs')}</button>
           </div>
           <div className="space-y-1">
             {loading ? (

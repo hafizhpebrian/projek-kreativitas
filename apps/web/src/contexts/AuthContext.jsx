@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchApi } from '../lib/api';
+import i18n from '../lib/i18n';
 
 const AuthContext = createContext();
 
@@ -13,6 +14,11 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        // Sync language from user profile
+        if (data.user?.language) {
+          i18n.changeLanguage(data.user.language);
+          localStorage.setItem('appLanguage', data.user.language);
+        }
       } else {
         setUser(null);
       }

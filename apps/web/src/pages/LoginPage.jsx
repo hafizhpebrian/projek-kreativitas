@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', message: '' });
   const [resetEmail, setResetEmail] = useState('');
+  const { t } = useTranslation();
 
   const handleForgotPassword = (e) => {
     e.preventDefault();
@@ -74,8 +76,8 @@ export default function LoginPage() {
               <span className="material-symbols-outlined text-primary-container text-3xl">meeting_room</span>
               <span className="font-headline font-extrabold text-primary-container text-2xl tracking-tighter">SI-BOOK</span>
             </div>
-            <h2 className="font-headline font-bold text-4xl text-on-surface mb-3 tracking-tight">Welcome Back</h2>
-            <p className="text-on-surface-variant font-medium text-center">Log in to your corporate account.</p>
+            <h2 className="font-headline font-bold text-4xl text-on-surface mb-3 tracking-tight">{t('login.welcome')}</h2>
+            <p className="text-on-surface-variant font-medium text-center">{t('login.subtitle')}</p>
           </div>
 
           {/* Form Content */}
@@ -97,7 +99,7 @@ export default function LoginPage() {
             }
           }}>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">EMAIL ADDRESS</label>
+              <label className="block text-sm font-semibold text-on-surface-variant tracking-wide px-1">{t('login.email').toUpperCase()}</label>
               <input 
                 name="email"
                 className="w-full h-14 px-5 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" 
@@ -109,7 +111,7 @@ export default function LoginPage() {
             
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
-                <label className="block text-sm font-semibold text-on-surface-variant tracking-wide">PASSWORD</label>
+                <label className="block text-sm font-semibold text-on-surface-variant tracking-wide">{t('login.password').toUpperCase()}</label>
                 <a onClick={handleForgotPassword} className="text-sm font-semibold text-primary-container hover:underline cursor-pointer">Forgot password?</a>
               </div>
               <input 
@@ -137,7 +139,7 @@ export default function LoginPage() {
               className="w-full h-14 bg-gradient-to-br from-primary to-primary-container text-white font-headline font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform active:scale-[0.98] tracking-widest text-sm" 
               type="submit"
             >
-              SIGN IN
+              {t('login.signIn').toUpperCase()}
             </button>
           </form>
 
@@ -169,7 +171,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-12 text-sm text-on-surface-variant font-medium">
-            New to SI-BOOK? <Link to="/signup" className="text-primary-container font-bold hover:underline">Request access</Link>
+            {t('login.noAccount')} <Link to="/signup" className="text-primary-container font-bold hover:underline">{t('login.signUp')}</Link>
           </p>
         </div>
       </section>
